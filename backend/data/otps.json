@@ -1,0 +1,58 @@
+[
+  {
+    "id": "1761325944799",
+    "identifier": "test@example.com",
+    "code": "219282",
+    "createdAt": "2025-10-24T17:12:24.799Z",
+    "expiresAt": "2025-10-24T17:22:24.799Z",
+    "used": false
+  },
+  {
+    "id": "1761326081115",
+    "identifier": "test2@example.com",
+    "code": "366622",
+    "createdAt": "2025-10-24T17:14:41.115Z",
+    "expiresAt": "2025-10-24T17:24:41.115Z",
+    "used": false
+  },
+  {
+    "id": "1761326209530",
+    "identifier": "pin3as@gmail.com",
+    "code": "204515",
+    "createdAt": "2025-10-24T17:16:49.530Z",
+    "expiresAt": "2025-10-24T17:26:49.530Z",
+    "used": false
+  },
+  {
+    "id": "1761327182915",
+    "identifier": "kcallejas24@hotmail.com",
+    "code": "939776",
+    "createdAt": "2025-10-24T17:33:02.915Z",
+    "expiresAt": "2025-10-24T17:43:02.915Z",
+    "used": true
+  },
+  {
+    "id": "1761327316411",
+    "identifier": "kcallejas24@hotmail.com",
+    "code": "771989",
+    "createdAt": "2025-10-24T17:35:16.411Z",
+    "expiresAt": "2025-10-24T17:45:16.411Z",
+    "used": true
+  },
+  {
+    "id": "1761327492966",
+    "identifier": "kcallejas24@hotmail.com",
+    "code": "433523",
+    "createdAt": "2025-10-24T17:38:12.966Z",
+    "expiresAt": "2025-10-24T17:48:12.966Z",
+    "used": true
+  },
+  {
+    "id": "1761329474383",
+    "identifier": "pin3as@gmail.com",
+    "code": "936365",
+    "createdAt": "2025-10-24T18:11:14.383Z",
+    "expiresAt": "2025-10-24T18:21:14.384Z",
+    "used": false
+  }
+]

@@ -1,0 +1,38 @@
+[
+  {
+    "id": "1761325944798",
+    "name": "Test User",
+    "email": "test@example.com",
+    "phone": null,
+    "password": "$2a$10$SJNvxgpXqrJkgHd4h33Lc.ctJ0KcGfT6beJf2VQpXdCD7lJJyg1QG",
+    "createdAt": "2025-10-24T17:12:24.798Z",
+    "verified": false
+  },
+  {
+    "id": "1761326081114",
+    "name": "Test User 2",
+    "email": "test2@example.com",
+    "phone": null,
+    "password": "$2a$10$.ogGkX0pwsW3yFNmpgb9H.ypAY4dT21WG59ay3.MIxU41eLLy4AOq",
+    "createdAt": "2025-10-24T17:14:41.114Z",
+    "verified": false
+  },
+  {
+    "id": "1761326209528",
+    "name": "Kenneth Callejas",
+    "email": "pin3as@gmail.com",
+    "phone": null,
+    "password": "$2a$10$oDfyDHlDSiHv7m3eQsq.xeXR0W9ACg/jSz7tq4OWHhsBLJuVYqFey",
+    "createdAt": "2025-10-24T17:16:49.528Z",
+    "verified": false
+  },
+  {
+    "id": "1761327182913",
+    "name": "Isaias Callejas",
+    "email": "kcallejas24@hotmail.com",
+    "phone": null,
+    "password": "$2a$10$.AfszjQlr/OBNm4VFDR5keEARvlJ.o.Mi7OkzDfqZZxEMQlOGZ9sO",
+    "createdAt": "2025-10-24T17:33:02.913Z",
+    "verified": true
+  }
+]
