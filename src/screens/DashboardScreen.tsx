@@ -175,7 +175,7 @@ export default function DashboardScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#4CAF50" />
+              <ActivityIndicator color="#007AFF" />
             ) : (
               <Text style={styles.actionButtonTextSecondary}>🤖 Recomendar con IA</Text>
             )}
@@ -188,7 +188,7 @@ export default function DashboardScreen() {
           
           {loading && meals.length === 0 ? (
             <View style={styles.card}>
-              <ActivityIndicator size="large" color="#4CAF50" />
+              <ActivityIndicator size="large" color="#007AFF" />
             </View>
           ) : meals.length === 0 ? (
             <View style={styles.card}>
@@ -302,11 +302,19 @@ export default function DashboardScreen() {
         onRequestClose={() => setShowRecommendation(false)}
       >
         <View style={styles.modalOverlay}>
-          <ScrollView style={styles.recommendationModal}>
-            <View style={styles.modalContent}>
+          <View style={styles.recommendationModalContainer}>
+            <View style={styles.recommendationModalHeader}>
               <Text style={styles.modalTitle}>🤖 Recomendación IA</Text>
-
-              {recommendation && (
+              <TouchableOpacity
+                style={styles.closeButtonTop}
+                onPress={() => setShowRecommendation(false)}
+              >
+                <Text style={styles.closeButtonTopText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <ScrollView style={styles.recommendationModalScroll}>
+              <View style={styles.recommendationModalContent}>
+                {recommendation && (
                 <>
                   <Text style={styles.recommendationMeal}>
                     {recommendation.meal}
@@ -346,13 +354,14 @@ export default function DashboardScreen() {
               )}
 
               <TouchableOpacity
-                style={[styles.modalButton, styles.saveButton, { marginTop: 20 }]}
+                style={[styles.modalButton, styles.saveButton, { marginTop: 20, marginBottom: 20 }]}
                 onPress={() => setShowRecommendation(false)}
               >
                 <Text style={styles.saveButtonText}>Cerrar</Text>
               </TouchableOpacity>
-            </View>
-          </ScrollView>
+              </View>
+            </ScrollView>
+          </View>
         </View>
       </Modal>
     </View>
@@ -411,12 +420,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#007AFF",
   },
   secondaryButton: {
     backgroundColor: "white",
     borderWidth: 2,
-    borderColor: "#4CAF50",
+    borderColor: "#007AFF",
   },
   actionButtonText: {
     color: "white",
@@ -424,7 +433,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   actionButtonTextSecondary: {
-    color: "#4CAF50",
+    color: "#007AFF",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -509,16 +518,52 @@ const styles = StyleSheet.create({
     width: "90%",
     maxWidth: 400,
   },
+  recommendationModalContainer: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    marginTop: 60,
+    marginHorizontal: 20,
+    maxHeight: "85%",
+    overflow: "hidden",
+  },
+  recommendationModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEE",
+  },
+  closeButtonTop: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  closeButtonTopText: {
+    fontSize: 20,
+    color: "#666",
+    fontWeight: "600",
+  },
+  recommendationModalScroll: {
+    flex: 1,
+  },
+  recommendationModalContent: {
+    padding: 24,
+  },
   recommendationModal: {
     flex: 1,
     marginTop: 100,
   },
   modalTitle: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
     color: "#000",
-    marginBottom: 20,
-    textAlign: "center",
+    flex: 1,
   },
   input: {
     borderWidth: 1,
@@ -553,8 +598,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   categoryButtonActive: {
-    backgroundColor: "#4CAF50",
-    borderColor: "#4CAF50",
+    backgroundColor: "#007AFF",
+    borderColor: "#007AFF",
   },
   categoryButtonText: {
     fontSize: 14,
@@ -584,7 +629,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   saveButton: {
-    backgroundColor: "#4CAF50",
+    backgroundColor: "#007AFF",
   },
   saveButtonText: {
     fontSize: 16,
@@ -594,7 +639,7 @@ const styles = StyleSheet.create({
   recommendationMeal: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#4CAF50",
+    color: "#007AFF",
     marginBottom: 12,
     textAlign: "center",
   },

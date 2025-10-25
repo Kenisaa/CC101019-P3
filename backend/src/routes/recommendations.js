@@ -90,7 +90,7 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin bloques de código) 
   "reasoning": "razonamiento de la recomendación"
 }`;
 
-    // Llamar a Gemini API
+    // Llamar a Gemini API con modo JSON nativo
     const response = await axios.post(
       `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${GEMINI_API_KEY}`,
       {
@@ -104,6 +104,7 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin bloques de código) 
           topK: 40,
           topP: 0.95,
           maxOutputTokens: 2048,
+          responseMimeType: "application/json"
         }
       },
       {
@@ -115,15 +116,37 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin bloques de código) 
 
     // Extraer el texto de la respuesta
     const generatedText = response.data.candidates[0].content.parts[0].text;
-    
+
     // Limpiar el texto para obtener solo el JSON
     let jsonText = generatedText.trim();
-    
+
     // Remover bloques de markdown si existen
     jsonText = jsonText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-    
-    // Parsear la respuesta JSON
-    const recommendation = JSON.parse(jsonText);
+
+    // Remover espacios en blanco al inicio/final
+    jsonText = jsonText.trim();
+
+    // Parsear la respuesta JSON con manejo robusto de errores
+    let recommendation;
+    try {
+      recommendation = JSON.parse(jsonText);
+    } catch (parseError) {
+      console.error('Error parsing JSON:', parseError.message);
+      console.error('JSON text received:', jsonText.substring(0, 500)); // Log primeros 500 caracteres
+
+      // Intentar limpiar JSON malformado
+      try {
+        // Reemplazar saltos de línea dentro de strings
+        const cleanedJson = jsonText
+          .replace(/\n/g, '\\n')
+          .replace(/\r/g, '\\r')
+          .replace(/\t/g, '\\t');
+
+        recommendation = JSON.parse(cleanedJson);
+      } catch (secondParseError) {
+        throw new Error(`No se pudo parsear la respuesta de Gemini: ${parseError.message}`);
+      }
+    }
 
     // Guardar la recomendación en la base de datos
     db.saveMealRecommendation(userId, recommendation);

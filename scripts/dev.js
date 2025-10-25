@@ -2,6 +2,27 @@
 
 const { spawn } = require('child_process');
 const path = require('path');
+const fs = require('fs');
+const { getLocalIP } = require('./get-local-ip');
+
+// Detectar IP local
+const localIP = getLocalIP();
+console.log(`🌐 IP Local detectada: ${localIP}\n`);
+
+// Actualizar .env con la IP correcta
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  let envContent = fs.readFileSync(envPath, 'utf8');
+
+  // Reemplazar la línea EXPO_PUBLIC_API_URL con la IP actual
+  envContent = envContent.replace(
+    /EXPO_PUBLIC_API_URL=.*/,
+    `EXPO_PUBLIC_API_URL=http://${localIP}:3000/api`
+  );
+
+  fs.writeFileSync(envPath, envContent);
+  console.log('✅ Archivo .env actualizado con la IP actual\n');
+}
 
 console.log('🚀 Iniciando Meal Buddy - Desarrollo Completo\n');
 
@@ -52,7 +73,8 @@ setTimeout(() => {
 }, 2000);
 
 console.log('\n✅ Ambos servidores iniciados');
-console.log('📡 Backend: http://192.168.1.14:3000');
+console.log(`📡 Backend: http://${localIP}:3000`);
 console.log('📱 Expo: Escanea el QR con Expo Go');
-console.log('\n💡 Presiona Ctrl+C para detener ambos servidores\n');
+console.log(`\n💡 API URL: http://${localIP}:3000/api`);
+console.log('💡 Presiona Ctrl+C para detener ambos servidores\n');
 
