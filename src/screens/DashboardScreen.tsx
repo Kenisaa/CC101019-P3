@@ -10,6 +10,20 @@ import {
   ActivityIndicator,
   Modal,
 } from "react-native";
+import { HugeiconsIcon } from "@hugeicons/react-native";
+import {
+  Add01Icon,
+  AiBrain01Icon,
+  Sun02Icon,
+  Restaurant01Icon,
+  Moon02Icon,
+  PopcornIcon,
+  Note01Icon,
+  Clock01Icon,
+  Chart01Icon,
+  Idea01Icon,
+  CancelCircleIcon,
+} from "@hugeicons/core-free-icons";
 import { useAuth } from "../hooks/useAuth";
 import {
   addMeal,
@@ -115,19 +129,25 @@ export default function DashboardScreen() {
     ]);
   };
 
-  const getCategoryIcon = (category: string) => {
+  const getCategoryIcon = (category: string, size: number = 32, color: string = "#FF8383") => {
+    let icon;
     switch (category) {
       case "desayuno":
-        return "🌅";
+        icon = Sun02Icon;
+        break;
       case "almuerzo":
-        return "🍽️";
+        icon = Restaurant01Icon;
+        break;
       case "cena":
-        return "🌙";
+        icon = Moon02Icon;
+        break;
       case "snack":
-        return "🍿";
+        icon = PopcornIcon;
+        break;
       default:
-        return "🍴";
+        icon = Restaurant01Icon;
     }
+    return <HugeiconsIcon icon={icon} size={size} color={color} />;
   };
 
   const formatDate = (dateString: string) => {
@@ -166,7 +186,10 @@ export default function DashboardScreen() {
             onPress={() => setShowAddMeal(true)}
             disabled={loading}
           >
-            <Text style={styles.actionButtonText}>➕ Agregar Comida</Text>
+            <View style={styles.buttonContent}>
+              <HugeiconsIcon icon={Add01Icon} size={20} color="white" />
+              <Text style={styles.actionButtonText}>Agregar Comida</Text>
+            </View>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -177,7 +200,10 @@ export default function DashboardScreen() {
             {loading ? (
               <ActivityIndicator color="#FF8383" />
             ) : (
-              <Text style={styles.actionButtonTextSecondary}>🤖 Recomendar con IA</Text>
+              <View style={styles.buttonContent}>
+                <HugeiconsIcon icon={AiBrain01Icon} size={20} color="#FF8383" />
+                <Text style={styles.actionButtonTextSecondary}>Recomendar con IA</Text>
+              </View>
             )}
           </TouchableOpacity>
         </View>
@@ -201,9 +227,9 @@ export default function DashboardScreen() {
             meals.map((meal) => (
               <View key={meal.id} style={styles.mealCard}>
                 <View style={styles.mealHeader}>
-                  <Text style={styles.mealIcon}>
+                  <View style={styles.mealIconContainer}>
                     {getCategoryIcon(meal.category)}
-                  </Text>
+                  </View>
                   <View style={styles.mealInfo}>
                     <Text style={styles.mealName}>{meal.name}</Text>
                     <Text style={styles.mealCategory}>
@@ -250,14 +276,17 @@ export default function DashboardScreen() {
                   ]}
                   onPress={() => setMealCategory(cat)}
                 >
-                  <Text
-                    style={[
-                      styles.categoryButtonText,
-                      mealCategory === cat && styles.categoryButtonTextActive,
-                    ]}
-                  >
-                    {getCategoryIcon(cat)} {cat.charAt(0).toUpperCase() + cat.slice(1)}
-                  </Text>
+                  <View style={styles.categoryButtonContent}>
+                    {getCategoryIcon(cat, 18, mealCategory === cat ? "white" : "#666")}
+                    <Text
+                      style={[
+                        styles.categoryButtonText,
+                        mealCategory === cat && styles.categoryButtonTextActive,
+                      ]}
+                    >
+                      {cat.charAt(0).toUpperCase() + cat.slice(1)}
+                    </Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </View>
@@ -304,12 +333,15 @@ export default function DashboardScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.recommendationModalContainer}>
             <View style={styles.recommendationModalHeader}>
-              <Text style={styles.modalTitle}>🤖 Recomendación IA</Text>
+              <View style={styles.modalTitleContainer}>
+                <HugeiconsIcon icon={AiBrain01Icon} size={24} color="#FF8383" />
+                <Text style={styles.modalTitle}>Recomendación IA</Text>
+              </View>
               <TouchableOpacity
                 style={styles.closeButtonTop}
                 onPress={() => setShowRecommendation(false)}
               >
-                <Text style={styles.closeButtonTopText}>✕</Text>
+                <HugeiconsIcon icon={CancelCircleIcon} size={24} color="#666" />
               </TouchableOpacity>
             </View>
             <ScrollView style={styles.recommendationModalScroll}>
@@ -323,13 +355,24 @@ export default function DashboardScreen() {
                     {recommendation.description}
                   </Text>
 
-                  <Text style={styles.recipeTitle}>📝 Receta</Text>
+                  <View style={styles.recipeTitleContainer}>
+                    <HugeiconsIcon icon={Note01Icon} size={20} color="#000" />
+                    <Text style={styles.recipeTitle}>Receta</Text>
+                  </View>
                   {recommendation.recipes.map((recipe, index) => (
                     <View key={index} style={styles.recipeCard}>
                       <Text style={styles.recipeName}>{recipe.name}</Text>
-                      <Text style={styles.recipeInfo}>
-                        ⏱️ {recipe.prepTime} • 📊 {recipe.difficulty}
-                      </Text>
+                      <View style={styles.recipeInfoContainer}>
+                        <View style={styles.recipeInfoItem}>
+                          <HugeiconsIcon icon={Clock01Icon} size={16} color="#666" />
+                          <Text style={styles.recipeInfo}>{recipe.prepTime}</Text>
+                        </View>
+                        <Text style={styles.recipeInfo}>•</Text>
+                        <View style={styles.recipeInfoItem}>
+                          <HugeiconsIcon icon={Chart01Icon} size={16} color="#666" />
+                          <Text style={styles.recipeInfo}>{recipe.difficulty}</Text>
+                        </View>
+                      </View>
 
                       <Text style={styles.recipeSection}>Ingredientes:</Text>
                       {recipe.ingredients.map((ingredient, i) => (
@@ -347,9 +390,12 @@ export default function DashboardScreen() {
                     </View>
                   ))}
 
-                  <Text style={styles.reasoning}>
-                    💡 {recommendation.reasoning}
-                  </Text>
+                  <View style={styles.reasoningContainer}>
+                    <HugeiconsIcon icon={Idea01Icon} size={18} color="#666" />
+                    <Text style={styles.reasoning}>
+                      {recommendation.reasoning}
+                    </Text>
+                  </View>
                 </>
               )}
 
@@ -690,6 +736,48 @@ const styles = StyleSheet.create({
     color: "#666",
     fontStyle: "italic",
     lineHeight: 20,
+    flex: 1,
+  },
+  buttonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  mealIconContainer: {
+    marginRight: 12,
+  },
+  categoryButtonContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  modalTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    flex: 1,
+  },
+  recipeTitleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  recipeInfoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  recipeInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  reasoningContainer: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
     backgroundColor: "#F0F8FF",
     padding: 12,
     borderRadius: 8,

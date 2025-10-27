@@ -7,6 +7,8 @@ import {
   Dimensions,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { HugeiconsIcon } from "@hugeicons/react-native";
+import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../navigation/types";
@@ -63,7 +65,7 @@ export default function WelcomeScreen() {
           activeOpacity={0.8}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
-          <Text style={styles.arrowIcon}>→</Text>
+          <HugeiconsIcon icon={ArrowRight01Icon} size={24} color="#999" />
         </TouchableOpacity>
       </View>
     </View>

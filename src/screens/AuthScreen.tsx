@@ -12,6 +12,13 @@ import {
   Dimensions,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
+import { HugeiconsIcon } from "@hugeicons/react-native";
+import {
+  Mail01Icon,
+  LockPasswordIcon,
+  User02Icon,
+  Key01Icon
+} from "@hugeicons/core-free-icons";
 import { useAuth } from "../hooks/useAuth";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
@@ -194,7 +201,7 @@ export default function AuthScreen() {
               <View style={styles.inputField}>
                 <Text style={styles.label}>Email</Text>
                 <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused]}>
-                  <Text style={styles.inputIcon}>📧</Text>
+                  <HugeiconsIcon icon={Mail01Icon} size={20} color="#999" />
                   <View style={styles.inputDivider} />
                   <TextInput
                     style={styles.input}
@@ -215,7 +222,7 @@ export default function AuthScreen() {
               <View style={styles.inputField}>
                 <Text style={styles.label}>Password</Text>
                 <View style={[styles.inputBox, passwordFocused && styles.inputBoxFocused]}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+                  <HugeiconsIcon icon={LockPasswordIcon} size={20} color="#999" />
                   <View style={styles.inputDivider} />
                   <TextInput
                     style={styles.input}
@@ -257,7 +264,7 @@ export default function AuthScreen() {
               <View style={styles.inputField}>
                 <Text style={styles.label}>Name</Text>
                 <View style={[styles.inputBox, nameFocused && styles.inputBoxFocused]}>
-                  <Text style={styles.inputIcon}>👤</Text>
+                  <HugeiconsIcon icon={User02Icon} size={20} color="#999" />
                   <View style={styles.inputDivider} />
                   <TextInput
                     style={styles.input}
@@ -276,7 +283,7 @@ export default function AuthScreen() {
               <View style={styles.inputField}>
                 <Text style={styles.label}>Email</Text>
                 <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused]}>
-                  <Text style={styles.inputIcon}>📧</Text>
+                  <HugeiconsIcon icon={Mail01Icon} size={20} color="#999" />
                   <View style={styles.inputDivider} />
                   <TextInput
                     style={styles.input}
@@ -297,7 +304,7 @@ export default function AuthScreen() {
               <View style={styles.inputField}>
                 <Text style={styles.label}>Password</Text>
                 <View style={[styles.inputBox, passwordFocused && styles.inputBoxFocused]}>
-                  <Text style={styles.inputIcon}>🔒</Text>
+                  <HugeiconsIcon icon={LockPasswordIcon} size={20} color="#999" />
                   <View style={styles.inputDivider} />
                   <TextInput
                     style={styles.input}
@@ -339,7 +346,7 @@ export default function AuthScreen() {
               <View style={styles.inputField}>
                 <Text style={styles.label}>Verification Code</Text>
                 <View style={[styles.inputBox, codeFocused && styles.inputBoxFocused]}>
-                  <Text style={styles.inputIcon}>🔑</Text>
+                  <HugeiconsIcon icon={Key01Icon} size={20} color="#999" />
                   <View style={styles.inputDivider} />
                   <TextInput
                     style={[styles.input, styles.codeInput]}
