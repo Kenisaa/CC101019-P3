@@ -5,7 +5,8 @@ import { RootStackParamList } from "./types";
 import { useAuth } from "../hooks/useAuth";
 import { ActivityIndicator, View } from "react-native";
 
-// Screens (crearemos estas a continuación)
+// Screens
+import WelcomeScreen from "../screens/WelcomeScreen";
 import AuthScreen from "../screens/AuthScreen";
 import DashboardScreen from "../screens/DashboardScreen";
 
@@ -20,8 +21,8 @@ export default function AppNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" color="#007AFF" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#FFFFFF" }}>
+        <ActivityIndicator size="large" color="#FF8383" />
       </View>
     );
   }
@@ -35,7 +36,10 @@ export default function AppNavigator() {
         }}
       >
         {!user ? (
-          <Stack.Screen name="Auth" component={AuthScreen} />
+          <>
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="Auth" component={AuthScreen} />
+          </>
         ) : (
           <Stack.Screen name="Dashboard" component={DashboardScreen} />
         )}

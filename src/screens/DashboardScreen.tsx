@@ -175,7 +175,7 @@ export default function DashboardScreen() {
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#007AFF" />
+              <ActivityIndicator color="#FF8383" />
             ) : (
               <Text style={styles.actionButtonTextSecondary}>🤖 Recomendar con IA</Text>
             )}
@@ -188,7 +188,7 @@ export default function DashboardScreen() {
           
           {loading && meals.length === 0 ? (
             <View style={styles.card}>
-              <ActivityIndicator size="large" color="#007AFF" />
+              <ActivityIndicator size="large" color="#FF8383" />
             </View>
           ) : meals.length === 0 ? (
             <View style={styles.card}>
@@ -420,12 +420,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   primaryButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#FF8383",
   },
   secondaryButton: {
     backgroundColor: "white",
     borderWidth: 2,
-    borderColor: "#007AFF",
+    borderColor: "#FF8383",
   },
   actionButtonText: {
     color: "white",
@@ -433,7 +433,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   actionButtonTextSecondary: {
-    color: "#007AFF",
+    color: "#FF8383",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -598,8 +598,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   categoryButtonActive: {
-    backgroundColor: "#007AFF",
-    borderColor: "#007AFF",
+    backgroundColor: "#FF8383",
+    borderColor: "#FF8383",
   },
   categoryButtonText: {
     fontSize: 14,
@@ -629,7 +629,7 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   saveButton: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#FF8383",
   },
   saveButtonText: {
     fontSize: 16,
@@ -639,7 +639,7 @@ const styles = StyleSheet.create({
   recommendationMeal: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#007AFF",
+    color: "#FF8383",
     marginBottom: 12,
     textAlign: "center",
   },
