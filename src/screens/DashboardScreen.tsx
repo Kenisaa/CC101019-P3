@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Modal,
   Share,
+  Animated,
+  Easing,
 } from "react-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
@@ -66,9 +68,29 @@ export default function DashboardScreen() {
   const [mealCategory, setMealCategory] = useState("desayuno");
   const [mealNotes, setMealNotes] = useState("");
 
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(50)).current;
+  const buttonScale = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     if (user?.id) {
       loadMealHistory();
+      // Animate in when component mounts
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 600,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(slideAnim, {
+          toValue: 0,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
   }, [user]);
 
@@ -334,9 +356,86 @@ export default function DashboardScreen() {
     }
   };
 
+  // Animated Meal Card Component
+  const AnimatedMealCard = ({ meal, index }: { meal: Meal; index: number }) => {
+    const cardFade = useRef(new Animated.Value(0)).current;
+    const cardSlide = useRef(new Animated.Value(30)).current;
+
+    useEffect(() => {
+      Animated.parallel([
+        Animated.timing(cardFade, {
+          toValue: 1,
+          duration: 400,
+          delay: index * 100, // Stagger effect
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: true,
+        }),
+        Animated.spring(cardSlide, {
+          toValue: 0,
+          delay: index * 100,
+          friction: 8,
+          tension: 40,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    }, []);
+
+    return (
+      <Animated.View
+        style={[
+          styles.mealCard,
+          {
+            opacity: cardFade,
+            transform: [{ translateY: cardSlide }],
+          },
+        ]}
+      >
+        <View style={styles.mealHeader}>
+          <View style={styles.mealIconContainer}>
+            {getCategoryIcon(meal.category)}
+          </View>
+          <View style={styles.mealInfo}>
+            <Text style={styles.mealName}>{meal.name}</Text>
+            <Text style={styles.mealCategory}>
+              {meal.category.charAt(0).toUpperCase() + meal.category.slice(1)}
+            </Text>
+          </View>
+          <Text style={styles.mealDate}>{formatDate(meal.date)}</Text>
+        </View>
+        {meal.notes && <Text style={styles.mealNotes}>{meal.notes}</Text>}
+        <View style={styles.mealActions}>
+          <TouchableOpacity
+            style={styles.mealActionButton}
+            onPress={() => handleEditMeal(meal)}
+          >
+            <HugeiconsIcon icon={PencilEdit01Icon} size={18} color="#666" />
+            <Text style={styles.mealActionText}>Editar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.mealActionButton}
+            onPress={() => handleDeleteMeal(meal.id)}
+          >
+            <HugeiconsIcon icon={Delete02Icon} size={18} color="#FF8383" />
+            <Text style={[styles.mealActionText, { color: "#FF8383" }]}>
+              Eliminar
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+    );
+  };
+
   return (
     <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+      <Animated.ScrollView
+        style={[
+          styles.scrollView,
+          {
+            opacity: fadeAnim,
+            transform: [{ translateY: slideAnim }],
+          },
+        ]}
+      >
         {/* Header */}
         <View style={styles.header}>
           <View>
@@ -407,46 +506,12 @@ export default function DashboardScreen() {
               </Text>
             </View>
           ) : (
-            meals.map((meal) => (
-              <View key={meal.id} style={styles.mealCard}>
-                <View style={styles.mealHeader}>
-                  <View style={styles.mealIconContainer}>
-                    {getCategoryIcon(meal.category)}
-                  </View>
-                  <View style={styles.mealInfo}>
-                    <Text style={styles.mealName}>{meal.name}</Text>
-                    <Text style={styles.mealCategory}>
-                      {meal.category.charAt(0).toUpperCase() + meal.category.slice(1)}
-                    </Text>
-                  </View>
-                  <Text style={styles.mealDate}>{formatDate(meal.date)}</Text>
-                </View>
-                {meal.notes && (
-                  <Text style={styles.mealNotes}>{meal.notes}</Text>
-                )}
-                <View style={styles.mealActions}>
-                  <TouchableOpacity
-                    style={styles.mealActionButton}
-                    onPress={() => handleEditMeal(meal)}
-                  >
-                    <HugeiconsIcon icon={PencilEdit01Icon} size={18} color="#666" />
-                    <Text style={styles.mealActionText}>Editar</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={styles.mealActionButton}
-                    onPress={() => handleDeleteMeal(meal.id)}
-                  >
-                    <HugeiconsIcon icon={Delete02Icon} size={18} color="#FF8383" />
-                    <Text style={[styles.mealActionText, { color: "#FF8383" }]}>
-                      Eliminar
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
+            meals.map((meal, index) => (
+              <AnimatedMealCard key={meal.id} meal={meal} index={index} />
             ))
           )}
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
       {/* Add Meal Modal */}
       <Modal

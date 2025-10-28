@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,6 +10,8 @@ import {
   Platform,
   ScrollView,
   Dimensions,
+  Animated,
+  Easing,
 } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { HugeiconsIcon } from "@hugeicons/react-native";
@@ -38,6 +40,54 @@ export default function AuthScreen() {
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
   const [codeFocused, setCodeFocused] = useState(false);
+
+  // Animation values
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(30)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
+
+  useEffect(() => {
+    // Animate in when component mounts
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 8,
+        tension: 40,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  // Animate when step changes
+  useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(20);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 500,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        friction: 8,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [step]);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -187,16 +237,32 @@ export default function AuthScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Heading */}
-          <View style={styles.headingContainer}>
+          <Animated.View
+            style={[
+              styles.headingContainer,
+              {
+                opacity: scaleAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          >
             <Text style={styles.headingText}>
               {step === "login" ? "Sign In" : step === "register" ? "Sign Up" : "Verify"}
             </Text>
             <View style={styles.headingLine} />
-          </View>
+          </Animated.View>
 
           {/* Forms */}
           {step === "login" ? (
-            <View style={styles.form}>
+            <Animated.View
+              style={[
+                styles.form,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
               {/* Email Field */}
               <View style={styles.inputField}>
                 <Text style={styles.label}>Email</Text>
@@ -257,9 +323,17 @@ export default function AuthScreen() {
                   Don't have an Account? <Text style={styles.linkText}>Sign Up</Text>
                 </Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           ) : step === "register" ? (
-            <View style={styles.form}>
+            <Animated.View
+              style={[
+                styles.form,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
               {/* Name Field */}
               <View style={styles.inputField}>
                 <Text style={styles.label}>Name</Text>
@@ -339,9 +413,17 @@ export default function AuthScreen() {
                   Already have an Account? <Text style={styles.linkText}>Sign In</Text>
                 </Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           ) : (
-            <View style={styles.form}>
+            <Animated.View
+              style={[
+                styles.form,
+                {
+                  opacity: fadeAnim,
+                  transform: [{ translateY: slideAnim }],
+                },
+              ]}
+            >
               {/* Code Field */}
               <View style={styles.inputField}>
                 <Text style={styles.label}>Verification Code</Text>
@@ -381,7 +463,7 @@ export default function AuthScreen() {
                   <Text style={styles.linkText}>Back to Login</Text>
                 </Text>
               </TouchableOpacity>
-            </View>
+            </Animated.View>
           )}
         </ScrollView>
       </View>
