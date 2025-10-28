@@ -75,6 +75,47 @@ router.get('/recent/:userId', async (req, res) => {
   }
 });
 
+// Actualizar una comida
+router.put('/:mealId', async (req, res) => {
+  try {
+    const { mealId } = req.params;
+    const { userId, name, category, date, imageUrl, notes } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'userId es requerido'
+      });
+    }
+
+    const result = db.updateMeal(mealId, userId, {
+      name,
+      category,
+      date,
+      imageUrl,
+      notes
+    });
+
+    if (result.success) {
+      return res.json({
+        success: true,
+        message: 'Comida actualizada correctamente'
+      });
+    } else {
+      return res.status(404).json({
+        success: false,
+        message: result.error || 'Comida no encontrada'
+      });
+    }
+  } catch (error) {
+    console.error('Error in /update:', error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // Eliminar una comida
 router.delete('/:mealId', async (req, res) => {
   try {

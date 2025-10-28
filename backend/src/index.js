@@ -4,6 +4,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const mealsRoutes = require('./routes/meals');
 const recommendationsRoutes = require('./routes/recommendations');
+const favoritesRoutes = require('./routes/favorites');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -17,6 +18,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/api/auth', authRoutes);
 app.use('/api/meals', mealsRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
+app.use('/api/favorites', favoritesRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -35,6 +37,7 @@ app.get('/', (req, res) => {
         add: 'POST /api/meals/add',
         history: 'GET /api/meals/history/:userId',
         recent: 'GET /api/meals/recent/:userId',
+        update: 'PUT /api/meals/:mealId',
         delete: 'DELETE /api/meals/:mealId',
         getPreferences: 'GET /api/meals/preferences/:userId',
         savePreferences: 'POST /api/meals/preferences'
@@ -42,6 +45,12 @@ app.get('/', (req, res) => {
       recommendations: {
         generate: 'POST /api/recommendations/generate',
         history: 'GET /api/recommendations/history/:userId'
+      },
+      favorites: {
+        add: 'POST /api/favorites/add',
+        list: 'GET /api/favorites/:userId',
+        remove: 'DELETE /api/favorites/:favoriteId',
+        check: 'GET /api/favorites/check/:userId/:recipeName'
       }
     }
   });
@@ -72,12 +81,18 @@ app.listen(PORT, () => {
   console.log(`     POST /api/meals/add - Agregar comida`);
   console.log(`     GET /api/meals/history/:userId - Historial de comidas`);
   console.log(`     GET /api/meals/recent/:userId - Comidas recientes`);
+  console.log(`     PUT /api/meals/:mealId - Actualizar comida`);
   console.log(`     DELETE /api/meals/:mealId - Eliminar comida`);
   console.log(`     GET /api/meals/preferences/:userId - Obtener preferencias`);
   console.log(`     POST /api/meals/preferences - Guardar preferencias`);
   console.log(`   Recommendations:`);
   console.log(`     POST /api/recommendations/generate - Generar recomendación`);
-  console.log(`     GET /api/recommendations/history/:userId - Historial de recomendaciones\n`);
+  console.log(`     GET /api/recommendations/history/:userId - Historial de recomendaciones`);
+  console.log(`   Favorites:`);
+  console.log(`     POST /api/favorites/add - Agregar receta a favoritos`);
+  console.log(`     GET /api/favorites/:userId - Listar recetas favoritas`);
+  console.log(`     DELETE /api/favorites/:favoriteId - Eliminar favorito`);
+  console.log(`     GET /api/favorites/check/:userId/:recipeName - Verificar si es favorito\n`);
 });
 
 module.exports = app;

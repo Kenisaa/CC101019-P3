@@ -73,6 +73,20 @@ export async function getRecentMeals(userId: string, days = 7) {
   }
 }
 
+// Actualizar comida
+export async function updateMeal(mealId: string, userId: string, meal: Partial<MealInput>) {
+  try {
+    const response = await axios.put(`${API_URL}/meals/${mealId}`, {
+      userId,
+      ...meal,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error('Error updating meal:', error);
+    throw error;
+  }
+}
+
 // Eliminar comida
 export async function deleteMeal(mealId: string, userId: string) {
   try {

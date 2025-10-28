@@ -65,6 +65,18 @@ db.exec(`
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
   );
 
+  CREATE TABLE IF NOT EXISTS favorite_recipes (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    recommendation_id TEXT,
+    recipe_name TEXT NOT NULL,
+    recipe_data TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (recommendation_id) REFERENCES meal_recommendations(id) ON DELETE SET NULL,
+    UNIQUE(user_id, recipe_name)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
   CREATE INDEX IF NOT EXISTS idx_otps_identifier ON otps(identifier);
@@ -73,7 +85,65 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_meals_date ON meals(date);
   CREATE INDEX IF NOT EXISTS idx_meal_recommendations_user_id ON meal_recommendations(user_id);
   CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
+  CREATE INDEX IF NOT EXISTS idx_favorite_recipes_user_id ON favorite_recipes(user_id);
 `);
+
+// Migraciones: Verificar y recrear tabla favorite_recipes si es necesario
+try {
+  const tableInfo = db.prepare(`PRAGMA table_info(favorite_recipes)`).all();
+  const columns = tableInfo.map(col => col.name);
+
+  console.log('📋 Columnas actuales en favorite_recipes:', columns.join(', '));
+
+  // Verificar si la estructura es correcta
+  const requiredColumns = ['id', 'user_id', 'recommendation_id', 'recipe_name', 'recipe_data', 'created_at'];
+  const hasCorrectStructure = requiredColumns.every(col => columns.includes(col));
+
+  // Si tiene columnas incorrectas (como meal_name) o estructura incorrecta, recrear
+  if (columns.includes('meal_name') || !hasCorrectStructure) {
+    console.log('⚠️  Estructura de tabla incorrecta. Recreando favorite_recipes...');
+    db.exec(`DROP TABLE IF EXISTS favorite_recipes`);
+    db.exec(`
+      CREATE TABLE favorite_recipes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        recommendation_id TEXT,
+        recipe_name TEXT NOT NULL,
+        recipe_data TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(user_id, recipe_name)
+      )
+    `);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_favorite_recipes_user_id ON favorite_recipes(user_id)`);
+    console.log('✅ Tabla favorite_recipes recreada correctamente');
+  } else {
+    console.log('✅ Estructura de tabla correcta');
+  }
+} catch (error) {
+  console.error('❌ Error en migración:', error.message);
+  // Si hay cualquier error, recrear la tabla
+  console.log('🔄 Recreando tabla favorite_recipes por seguridad...');
+  try {
+    db.exec(`DROP TABLE IF EXISTS favorite_recipes`);
+    db.exec(`
+      CREATE TABLE favorite_recipes (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        recommendation_id TEXT,
+        recipe_name TEXT NOT NULL,
+        recipe_data TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        UNIQUE(user_id, recipe_name)
+      )
+    `);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_favorite_recipes_user_id ON favorite_recipes(user_id)`);
+    console.log('✅ Tabla favorite_recipes recreada correctamente');
+  } catch (recreateError) {
+    console.error('❌ Error recreando tabla:', recreateError.message);
+  }
+}
 
 class SQLiteDatabase {
   // USUARIOS
@@ -311,12 +381,57 @@ class SQLiteDatabase {
     }
   }
 
+  updateMeal(mealId, userId, mealData) {
+    try {
+      const fields = [];
+      const values = [];
+
+      if (mealData.name !== undefined) {
+        fields.push('name = ?');
+        values.push(mealData.name);
+      }
+      if (mealData.category !== undefined) {
+        fields.push('category = ?');
+        values.push(mealData.category);
+      }
+      if (mealData.date !== undefined) {
+        fields.push('date = ?');
+        values.push(mealData.date);
+      }
+      if (mealData.imageUrl !== undefined) {
+        fields.push('image_url = ?');
+        values.push(mealData.imageUrl);
+      }
+      if (mealData.notes !== undefined) {
+        fields.push('notes = ?');
+        values.push(mealData.notes);
+      }
+
+      if (fields.length === 0) {
+        return { success: false, error: 'No hay campos para actualizar' };
+      }
+
+      values.push(mealId, userId);
+
+      const stmt = db.prepare(`
+        UPDATE meals SET ${fields.join(', ')}
+        WHERE id = ? AND user_id = ?
+      `);
+
+      const result = stmt.run(...values);
+      return { success: result.changes > 0 };
+    } catch (error) {
+      console.error('Error updating meal:', error);
+      return { success: false, error };
+    }
+  }
+
   deleteMeal(mealId, userId) {
     try {
       const stmt = db.prepare(`
         DELETE FROM meals WHERE id = ? AND user_id = ?
       `);
-      
+
       const result = stmt.run(mealId, userId);
       return { success: result.changes > 0 };
     } catch (error) {
@@ -438,6 +553,91 @@ class SQLiteDatabase {
     } catch (error) {
       console.error('Error getting user preferences:', error);
       return { success: false, preferences: null, error };
+    }
+  }
+
+  // FAVORITE RECIPES
+  addFavoriteRecipe(userId, recipeData) {
+    try {
+      const id = this.generateId();
+      const stmt = db.prepare(`
+        INSERT INTO favorite_recipes (id, user_id, recommendation_id, recipe_name, recipe_data)
+        VALUES (?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(
+        id,
+        userId,
+        recipeData.recommendationId || null,
+        recipeData.name,
+        JSON.stringify(recipeData)
+      );
+
+      return { success: true, id };
+    } catch (error) {
+      if (error.message.includes('UNIQUE constraint')) {
+        return { success: false, error: 'Esta receta ya está en favoritos' };
+      }
+      console.error('Error adding favorite recipe:', error);
+      return { success: false, error };
+    }
+  }
+
+  getFavoriteRecipes(userId, limitCount = 50) {
+    try {
+      const stmt = db.prepare(`
+        SELECT * FROM favorite_recipes
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ?
+      `);
+
+      const rawFavorites = stmt.all(userId, limitCount);
+      const favorites = rawFavorites
+        .filter(fav => fav.recipe_data) // Filtrar registros sin datos
+        .map(fav => ({
+          id: fav.id,
+          userId: fav.user_id,
+          recommendationId: fav.recommendation_id,
+          recipeName: fav.recipe_name,
+          recipeData: JSON.parse(fav.recipe_data),
+          createdAt: fav.created_at
+        }));
+
+      return { success: true, favorites };
+    } catch (error) {
+      console.error('Error getting favorite recipes:', error);
+      return { success: false, favorites: [], error };
+    }
+  }
+
+  removeFavoriteRecipe(favoriteId, userId) {
+    try {
+      const stmt = db.prepare(`
+        DELETE FROM favorite_recipes WHERE id = ? AND user_id = ?
+      `);
+
+      const result = stmt.run(favoriteId, userId);
+      return { success: result.changes > 0 };
+    } catch (error) {
+      console.error('Error removing favorite recipe:', error);
+      return { success: false, error };
+    }
+  }
+
+  isFavoriteRecipe(userId, recipeName) {
+    try {
+      const stmt = db.prepare(`
+        SELECT id FROM favorite_recipes
+        WHERE user_id = ? AND recipe_name = ?
+        LIMIT 1
+      `);
+
+      const favorite = stmt.get(userId, recipeName);
+      return { success: true, isFavorite: !!favorite, favoriteId: favorite?.id };
+    } catch (error) {
+      console.error('Error checking favorite recipe:', error);
+      return { success: false, isFavorite: false };
     }
   }
 

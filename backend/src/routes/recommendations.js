@@ -27,7 +27,7 @@ router.post('/generate', async (req, res) => {
     // Obtener historial de comidas recientes
     const mealHistoryDays = subscriptionTier === 'premium' ? 30 : 7;
     const mealsResult = db.getRecentMeals(userId, mealHistoryDays);
-    
+
     if (!mealsResult.success) {
       return res.status(500).json({
         success: false,
@@ -39,20 +39,38 @@ router.post('/generate', async (req, res) => {
     const preferencesResult = db.getUserPreferences(userId);
     const preferences = preferencesResult.preferences || {};
 
+    // Obtener últimas 5 recomendaciones para evitar repetición
+    const recommendationsResult = db.getRecommendationHistory(userId, 5);
+    const recentRecommendations = recommendationsResult.success ? recommendationsResult.recommendations : [];
+
     // Preparar el contexto del usuario
     const mealHistory = mealsResult.meals
       .map((meal) => `${meal.category}: ${meal.name}`)
+      .join(', ');
+
+    // Extraer los ingredientes principales de las últimas recomendaciones
+    const recentIngredients = recentRecommendations
+      .map(rec => rec.meal_name)
+      .filter(Boolean)
       .join(', ');
 
     const recipesCount = subscriptionTier === 'premium' ? 3 : 1;
 
     // Construir el prompt
     let prompt = `Eres un asistente de nutrición experto que ayuda a las personas a descubrir qué comer.
-Tu objetivo es sugerir comidas deliciosas, nutritivas y variadas basándote en el historial de comidas del usuario.
+Tu objetivo es sugerir comidas deliciosas, nutritivas y MUY VARIADAS basándote en el historial de comidas del usuario.
 Siempre responde en español.
 
 Historial reciente de comidas del usuario: ${mealHistory || 'Sin historial previo'}
 `;
+
+    // Agregar recomendaciones recientes para evitar repetición
+    if (recentIngredients) {
+      prompt += `\n\n⚠️ IMPORTANTE - Recomendaciones recientes que ya recibió el usuario: ${recentIngredients}`;
+      prompt += `\n🚫 EVITA REPETIR estos platillos o ingredientes principales. Busca opciones COMPLETAMENTE DIFERENTES.`;
+      prompt += `\nSi las últimas fueron de pollo, sugiere pescado, res, cerdo, vegetariano, etc.`;
+      prompt += `\nSi fueron asiáticas, sugiere mexicana, italiana, mediterránea, etc.`;
+    }
 
     // Agregar preferencias si existen
     if (preferences.dietaryRestrictions && preferences.dietaryRestrictions.length > 0) {
@@ -68,11 +86,21 @@ Historial reciente de comidas del usuario: ${mealHistory || 'Sin historial previ
       prompt += `\nComidas que no le gustan: ${preferences.dislikedFoods.join(', ')}`;
     }
 
+    // Agregar instrucciones de variedad
+    prompt += `\n\n🌟 PRIORIZA LA VARIEDAD:`;
+    prompt += `\n- Alterna entre diferentes proteínas (pollo, res, cerdo, pescado, mariscos, legumbres, tofu)`;
+    prompt += `\n- Varía los estilos de cocina (mexicana, italiana, asiática, mediterránea, india, etc.)`;
+    prompt += `\n- Explora diferentes métodos de cocción (asado, al vapor, salteado, horneado, etc.)`;
+    prompt += `\n- Considera platillos de temporada y regionales`;
+    prompt += `\n- Balancea entre comidas ligeras y sustanciosas`;
+
     prompt += `\n\nPor favor recomiéndame una comida para hoy. Incluye:
 1. El nombre de la comida recomendada
-2. Una breve descripción (2-3 líneas)
-3. ${recipesCount} receta${recipesCount > 1 ? 's' : ''} completa${recipesCount > 1 ? 's' : ''} con ingredientes, instrucciones, tiempo de preparación y nivel de dificultad
-4. El razonamiento detrás de tu recomendación
+2. Una breve descripción (máximo 2 líneas)
+3. ${recipesCount} receta${recipesCount > 1 ? 's' : ''} completa${recipesCount > 1 ? 's' : ''} con ingredientes (máximo 10), instrucciones (máximo 8 pasos), tiempo de preparación y nivel de dificultad
+4. El razonamiento detrás de tu recomendación (máximo 2 líneas)
+
+IMPORTANTE: Sé conciso en las cantidades e ingredientes. Usa nombres cortos.
 
 Responde ÚNICAMENTE con un JSON válido (sin markdown, sin bloques de código) con esta estructura exacta:
 {
@@ -100,10 +128,10 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin bloques de código) 
           }]
         }],
         generationConfig: {
-          temperature: 0.7,
-          topK: 40,
+          temperature: 0.9, // Aumentado para más creatividad y variedad
+          topK: 50,
           topP: 0.95,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 4096,
           responseMimeType: "application/json"
         }
       },
@@ -134,6 +162,12 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin bloques de código) 
       console.error('Error parsing JSON:', parseError.message);
       console.error('JSON text received:', jsonText.substring(0, 500)); // Log primeros 500 caracteres
 
+      // Verificar si el JSON está truncado
+      if (parseError.message.includes('Unterminated') || parseError.message.includes('Unexpected end')) {
+        console.error('❌ La respuesta de Gemini fue truncada. Aumenta maxOutputTokens.');
+        throw new Error('La receta generada es muy larga. Por favor, intenta de nuevo.');
+      }
+
       // Intentar limpiar JSON malformado
       try {
         // Reemplazar saltos de línea dentro de strings
@@ -144,7 +178,7 @@ Responde ÚNICAMENTE con un JSON válido (sin markdown, sin bloques de código) 
 
         recommendation = JSON.parse(cleanedJson);
       } catch (secondParseError) {
-        throw new Error(`No se pudo parsear la respuesta de Gemini: ${parseError.message}`);
+        throw new Error('No se pudo generar la receta. Por favor, intenta de nuevo.');
       }
     }
 
