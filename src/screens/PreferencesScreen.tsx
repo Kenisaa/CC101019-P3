@@ -17,6 +17,9 @@ import {
   ArrowLeft01Icon,
 } from "@hugeicons/core-free-icons";
 import axios from "axios";
+import NotificationSettings from "../components/NotificationSettings";
+import ThemeSelector from "../components/ThemeSelector";
+import { useTheme } from "../hooks/useTheme";
 
 const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
 
@@ -33,6 +36,7 @@ interface UserPreferences {
 }
 
 export default function PreferencesScreen({ userId, onClose }: PreferencesScreenProps) {
+  const { theme } = useTheme();
   const [loading, setLoading] = useState(false);
   const [preferences, setPreferences] = useState<UserPreferences>({
     dietaryRestrictions: [],
@@ -163,19 +167,24 @@ export default function PreferencesScreen({ userId, onClose }: PreferencesScreen
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
+      <View style={[styles.header, { backgroundColor: theme.backgroundSecondary, borderBottomColor: theme.border }]}>
         <TouchableOpacity onPress={onClose} style={styles.backButton}>
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color="#000" />
+          <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color={theme.text} />
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
-          <HugeiconsIcon icon={Settings02Icon} size={24} color="#FF8383" />
-          <Text style={styles.headerTitle}>Preferencias</Text>
+          <HugeiconsIcon icon={Settings02Icon} size={24} color={theme.primary} />
+          <Text style={[styles.headerTitle, { color: theme.text }]}>Preferencias</Text>
         </View>
         <View style={{ width: 24 }} />
       </View>
 
       <ScrollView style={styles.scrollView}>
+        {/* Tema */}
+        <View style={styles.section}>
+          <ThemeSelector />
+        </View>
+
         {/* Restricciones Dietéticas */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Restricciones Dietéticas</Text>
@@ -296,6 +305,11 @@ export default function PreferencesScreen({ userId, onClose }: PreferencesScreen
               </View>
             ))}
           </View>
+        </View>
+
+        {/* Notificaciones */}
+        <View style={styles.section}>
+          <NotificationSettings />
         </View>
 
         <View style={{ height: 100 }} />

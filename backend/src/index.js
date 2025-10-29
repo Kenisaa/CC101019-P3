@@ -5,6 +5,7 @@ const authRoutes = require('./routes/auth');
 const mealsRoutes = require('./routes/meals');
 const recommendationsRoutes = require('./routes/recommendations');
 const favoritesRoutes = require('./routes/favorites');
+const shoppingListRoutes = require('./routes/shopping-list');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/meals', mealsRoutes);
 app.use('/api/recommendations', recommendationsRoutes);
 app.use('/api/favorites', favoritesRoutes);
+app.use('/api/shopping-list', shoppingListRoutes);
 
 // Ruta de prueba
 app.get('/', (req, res) => {
@@ -51,6 +53,16 @@ app.get('/', (req, res) => {
         list: 'GET /api/favorites/:userId',
         remove: 'DELETE /api/favorites/:favoriteId',
         check: 'GET /api/favorites/check/:userId/:recipeName'
+      },
+      shoppingList: {
+        add: 'POST /api/shopping-list/add',
+        addFromRecipe: 'POST /api/shopping-list/add-from-recipe',
+        list: 'GET /api/shopping-list/:userId',
+        toggle: 'PUT /api/shopping-list/:itemId/toggle',
+        update: 'PUT /api/shopping-list/:itemId',
+        delete: 'DELETE /api/shopping-list/:itemId',
+        clearChecked: 'DELETE /api/shopping-list/clear-checked/:userId',
+        clearAll: 'DELETE /api/shopping-list/clear-all/:userId'
       }
     }
   });
@@ -92,7 +104,16 @@ app.listen(PORT, () => {
   console.log(`     POST /api/favorites/add - Agregar receta a favoritos`);
   console.log(`     GET /api/favorites/:userId - Listar recetas favoritas`);
   console.log(`     DELETE /api/favorites/:favoriteId - Eliminar favorito`);
-  console.log(`     GET /api/favorites/check/:userId/:recipeName - Verificar si es favorito\n`);
+  console.log(`     GET /api/favorites/check/:userId/:recipeName - Verificar si es favorito`);
+  console.log(`   Shopping List:`);
+  console.log(`     POST /api/shopping-list/add - Agregar item`);
+  console.log(`     POST /api/shopping-list/add-from-recipe - Agregar ingredientes de receta`);
+  console.log(`     GET /api/shopping-list/:userId - Obtener lista de compras`);
+  console.log(`     PUT /api/shopping-list/:itemId/toggle - Toggle estado comprado`);
+  console.log(`     PUT /api/shopping-list/:itemId - Actualizar item`);
+  console.log(`     DELETE /api/shopping-list/:itemId - Eliminar item`);
+  console.log(`     DELETE /api/shopping-list/clear-checked/:userId - Limpiar items comprados`);
+  console.log(`     DELETE /api/shopping-list/clear-all/:userId - Limpiar toda la lista\n`);
 });
 
 module.exports = app;

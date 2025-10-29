@@ -77,6 +77,19 @@ db.exec(`
     UNIQUE(user_id, recipe_name)
   );
 
+  CREATE TABLE IF NOT EXISTS shopping_list_items (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    quantity TEXT,
+    category TEXT,
+    checked INTEGER DEFAULT 0,
+    source_type TEXT,
+    source_id TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  );
+
   CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
   CREATE INDEX IF NOT EXISTS idx_users_phone ON users(phone);
   CREATE INDEX IF NOT EXISTS idx_otps_identifier ON otps(identifier);
@@ -86,6 +99,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_meal_recommendations_user_id ON meal_recommendations(user_id);
   CREATE INDEX IF NOT EXISTS idx_user_preferences_user_id ON user_preferences(user_id);
   CREATE INDEX IF NOT EXISTS idx_favorite_recipes_user_id ON favorite_recipes(user_id);
+  CREATE INDEX IF NOT EXISTS idx_shopping_list_user_id ON shopping_list_items(user_id);
 `);
 
 // Migraciones: Verificar y recrear tabla favorite_recipes si es necesario
@@ -639,6 +653,230 @@ class SQLiteDatabase {
       console.error('Error checking favorite recipe:', error);
       return { success: false, isFavorite: false };
     }
+  }
+
+  // SHOPPING LIST
+  addShoppingListItem(userId, itemData) {
+    try {
+      const id = this.generateId();
+      const stmt = db.prepare(`
+        INSERT INTO shopping_list_items (id, user_id, name, quantity, category, checked, source_type, source_id)
+        VALUES (?, ?, ?, ?, ?, 0, ?, ?)
+      `);
+
+      stmt.run(
+        id,
+        userId,
+        itemData.name,
+        itemData.quantity || null,
+        itemData.category || 'Otros',
+        itemData.sourceType || 'manual',
+        itemData.sourceId || null
+      );
+
+      return { success: true, id };
+    } catch (error) {
+      console.error('Error adding shopping list item:', error);
+      return { success: false, error };
+    }
+  }
+
+  getShoppingList(userId, includeChecked = true) {
+    try {
+      let query = `
+        SELECT * FROM shopping_list_items
+        WHERE user_id = ?
+      `;
+
+      if (!includeChecked) {
+        query += ` AND checked = 0`;
+      }
+
+      query += ` ORDER BY checked ASC, category ASC, created_at DESC`;
+
+      const stmt = db.prepare(query);
+      const items = stmt.all(userId);
+
+      return {
+        success: true,
+        items: items.map(item => ({
+          ...item,
+          checked: !!item.checked
+        }))
+      };
+    } catch (error) {
+      console.error('Error getting shopping list:', error);
+      return { success: false, items: [], error };
+    }
+  }
+
+  updateShoppingListItem(itemId, userId, updates) {
+    try {
+      const fields = [];
+      const values = [];
+
+      if (updates.name !== undefined) {
+        fields.push('name = ?');
+        values.push(updates.name);
+      }
+      if (updates.quantity !== undefined) {
+        fields.push('quantity = ?');
+        values.push(updates.quantity);
+      }
+      if (updates.category !== undefined) {
+        fields.push('category = ?');
+        values.push(updates.category);
+      }
+      if (updates.checked !== undefined) {
+        fields.push('checked = ?');
+        values.push(updates.checked ? 1 : 0);
+      }
+
+      if (fields.length === 0) {
+        return { success: false, error: 'No hay campos para actualizar' };
+      }
+
+      values.push(itemId, userId);
+
+      const stmt = db.prepare(`
+        UPDATE shopping_list_items SET ${fields.join(', ')}
+        WHERE id = ? AND user_id = ?
+      `);
+
+      const result = stmt.run(...values);
+      return { success: result.changes > 0 };
+    } catch (error) {
+      console.error('Error updating shopping list item:', error);
+      return { success: false, error };
+    }
+  }
+
+  toggleShoppingListItem(itemId, userId) {
+    try {
+      const stmt = db.prepare(`
+        UPDATE shopping_list_items
+        SET checked = CASE WHEN checked = 0 THEN 1 ELSE 0 END
+        WHERE id = ? AND user_id = ?
+      `);
+
+      const result = stmt.run(itemId, userId);
+      return { success: result.changes > 0 };
+    } catch (error) {
+      console.error('Error toggling shopping list item:', error);
+      return { success: false, error };
+    }
+  }
+
+  deleteShoppingListItem(itemId, userId) {
+    try {
+      const stmt = db.prepare(`
+        DELETE FROM shopping_list_items WHERE id = ? AND user_id = ?
+      `);
+
+      const result = stmt.run(itemId, userId);
+      return { success: result.changes > 0 };
+    } catch (error) {
+      console.error('Error deleting shopping list item:', error);
+      return { success: false, error };
+    }
+  }
+
+  clearCheckedItems(userId) {
+    try {
+      const stmt = db.prepare(`
+        DELETE FROM shopping_list_items WHERE user_id = ? AND checked = 1
+      `);
+
+      const result = stmt.run(userId);
+      return { success: true, deletedCount: result.changes };
+    } catch (error) {
+      console.error('Error clearing checked items:', error);
+      return { success: false, error };
+    }
+  }
+
+  clearAllShoppingList(userId) {
+    try {
+      const stmt = db.prepare(`
+        DELETE FROM shopping_list_items WHERE user_id = ?
+      `);
+
+      const result = stmt.run(userId);
+      return { success: true, deletedCount: result.changes };
+    } catch (error) {
+      console.error('Error clearing shopping list:', error);
+      return { success: false, error };
+    }
+  }
+
+  addItemsFromRecipe(userId, recipeData, sourceId = null) {
+    try {
+      if (!recipeData.ingredients || !Array.isArray(recipeData.ingredients)) {
+        return { success: false, error: 'La receta no tiene ingredientes válidos' };
+      }
+
+      const stmt = db.prepare(`
+        INSERT INTO shopping_list_items (id, user_id, name, quantity, category, checked, source_type, source_id)
+        VALUES (?, ?, ?, ?, ?, 0, 'recipe', ?)
+      `);
+
+      let addedCount = 0;
+      for (const ingredient of recipeData.ingredients) {
+        try {
+          const id = this.generateId();
+          // Parseamos el ingrediente (formato: "2 tazas de arroz")
+          const parsed = this.parseIngredient(ingredient);
+
+          stmt.run(
+            id,
+            userId,
+            parsed.name,
+            parsed.quantity || null,
+            parsed.category || 'Ingredientes',
+            sourceId
+          );
+          addedCount++;
+        } catch (err) {
+          console.error('Error adding ingredient:', ingredient, err);
+        }
+      }
+
+      return { success: true, addedCount };
+    } catch (error) {
+      console.error('Error adding items from recipe:', error);
+      return { success: false, error };
+    }
+  }
+
+  parseIngredient(ingredient) {
+    // Simple parser para separar cantidad de nombre
+    // Ejemplo: "2 tazas de arroz" -> { quantity: "2 tazas", name: "arroz" }
+    const match = ingredient.match(/^([\d\s\/.,]+\s*[a-zA-ZáéíóúÁÉÍÓÚñÑ]*)\s+de\s+(.+)$/i);
+
+    if (match) {
+      return {
+        quantity: match[1].trim(),
+        name: match[2].trim(),
+        category: 'Ingredientes'
+      };
+    }
+
+    // Si no tiene "de", intentar detectar cantidad al inicio
+    const matchSimple = ingredient.match(/^([\d\s\/.,]+\s*[a-zA-ZáéíóúÁÉÍÓÚñÑ]*)\s+(.+)$/);
+    if (matchSimple) {
+      return {
+        quantity: matchSimple[1].trim(),
+        name: matchSimple[2].trim(),
+        category: 'Ingredientes'
+      };
+    }
+
+    // Si no se puede parsear, devolver todo como nombre
+    return {
+      quantity: null,
+      name: ingredient.trim(),
+      category: 'Ingredientes'
+    };
   }
 
   // Utilidades

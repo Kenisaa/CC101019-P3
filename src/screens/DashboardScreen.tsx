@@ -12,6 +12,7 @@ import {
   Share,
   Animated,
   Easing,
+  Image,
 } from "react-native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
@@ -30,6 +31,9 @@ import {
   Delete02Icon,
   FavouriteIcon,
   Share01Icon,
+  ShoppingBasket01Icon,
+  Camera01Icon,
+  Image01Icon,
 } from "@hugeicons/core-free-icons";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -47,11 +51,16 @@ import {
   isFavoriteRecipe,
   removeFavoriteRecipe,
 } from "../services/favorites";
+import { addItemsFromRecipe } from "../services/shoppingList";
+import { takePhoto, pickImage, uploadImageToFirebase } from "../services/images";
+import { useTheme } from "../hooks/useTheme";
 import PreferencesScreen from "./PreferencesScreen";
 import FavoritesScreen from "./FavoritesScreen";
+import ShoppingListScreen from "./ShoppingListScreen";
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
+  const { theme } = useTheme();
   const [meals, setMeals] = useState<Meal[]>([]);
   const [loading, setLoading] = useState(false);
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
@@ -60,6 +69,7 @@ export default function DashboardScreen() {
   const [showPreferences, setShowPreferences] = useState(false);
   const [showEditMeal, setShowEditMeal] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
+  const [showShoppingList, setShowShoppingList] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [favoriteRecipes, setFavoriteRecipes] = useState<Set<string>>(new Set());
 
@@ -67,6 +77,7 @@ export default function DashboardScreen() {
   const [mealName, setMealName] = useState("");
   const [mealCategory, setMealCategory] = useState("desayuno");
   const [mealNotes, setMealNotes] = useState("");
+  const [mealImageUri, setMealImageUri] = useState<string | null>(null);
 
   // Search and filter states
   const [searchQuery, setSearchQuery] = useState("");
@@ -150,6 +161,8 @@ export default function DashboardScreen() {
 
     try {
       setLoading(true);
+
+      // Primero agregamos la comida sin la imagen para obtener el ID
       const result = await addMeal(user.id, {
         name: mealName,
         category: mealCategory,
@@ -157,10 +170,29 @@ export default function DashboardScreen() {
       });
 
       if (result.success) {
+        const mealId = result.id;
+
+        // Si hay una imagen, la subimos a Firebase y actualizamos la comida
+        if (mealImageUri) {
+          try {
+            const firebaseUrl = await uploadImageToFirebase(mealImageUri, user.id, mealId);
+
+            // Actualizamos la comida con la URL de Firebase
+            await updateMeal(mealId, user.id, {
+              imageUrl: firebaseUrl,
+            });
+          } catch (imageError) {
+            console.error("Error al subir imagen:", imageError);
+            // Continuamos aunque falle la imagen
+            Alert.alert("Advertencia", "La comida se guardó pero hubo un error al subir la imagen");
+          }
+        }
+
         Alert.alert("¡Éxito!", "Comida agregada correctamente");
         setMealName("");
         setMealCategory("desayuno");
         setMealNotes("");
+        setMealImageUri(null);
         setShowAddMeal(false);
         loadMealHistory();
       }
@@ -175,7 +207,30 @@ export default function DashboardScreen() {
     setMealName("");
     setMealCategory("desayuno");
     setMealNotes("");
+    setMealImageUri(null);
     setShowAddMeal(false);
+  };
+
+  const handleTakePhoto = async () => {
+    try {
+      const result = await takePhoto();
+      if (result) {
+        setMealImageUri(result.uri);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "No se pudo tomar la foto");
+    }
+  };
+
+  const handlePickImage = async () => {
+    try {
+      const result = await pickImage();
+      if (result) {
+        setMealImageUri(result.uri);
+      }
+    } catch (error: any) {
+      Alert.alert("Error", error.message || "No se pudo seleccionar la imagen");
+    }
   };
 
   const handleGetRecommendation = async () => {
@@ -349,6 +404,25 @@ export default function DashboardScreen() {
     }
   };
 
+  const handleAddToShoppingList = async (recipe: Recipe) => {
+    if (!user?.id) return;
+
+    try {
+      const result = await addItemsFromRecipe(user.id, recipe);
+      if (result.success) {
+        Alert.alert(
+          "¡Éxito!",
+          `${result.addedCount} ingredientes agregados a tu lista de compras`
+        );
+      } else {
+        Alert.alert("Error", "No se pudieron agregar los ingredientes");
+      }
+    } catch (error: any) {
+      console.error("Error adding to shopping list:", error);
+      Alert.alert("Error", "No se pudieron agregar los ingredientes");
+    }
+  };
+
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "desayuno":
@@ -471,6 +545,7 @@ export default function DashboardScreen() {
         style={[
           styles.mealCard,
           {
+            backgroundColor: theme.backgroundCard,
             opacity: cardFade,
             transform: [{ translateY: cardSlide }],
           },
@@ -481,21 +556,28 @@ export default function DashboardScreen() {
             {getCategoryIcon(meal.category)}
           </View>
           <View style={styles.mealInfo}>
-            <Text style={styles.mealName}>{meal.name}</Text>
-            <Text style={styles.mealCategory}>
+            <Text style={[styles.mealName, { color: theme.text }]}>{meal.name}</Text>
+            <Text style={[styles.mealCategory, { color: theme.textSecondary }]}>
               {meal.category.charAt(0).toUpperCase() + meal.category.slice(1)}
             </Text>
           </View>
-          <Text style={styles.mealDate}>{formatDate(meal.date)}</Text>
+          <Text style={[styles.mealDate, { color: theme.textTertiary }]}>{formatDate(meal.date)}</Text>
         </View>
-        {meal.notes && <Text style={styles.mealNotes}>{meal.notes}</Text>}
-        <View style={styles.mealActions}>
+        {meal.notes && <Text style={[styles.mealNotes, { color: theme.textSecondary }]}>{meal.notes}</Text>}
+        {meal.image_url && (
+          <Image
+            source={{ uri: meal.image_url }}
+            style={styles.mealImage}
+            resizeMode="cover"
+          />
+        )}
+        <View style={[styles.mealActions, { borderTopColor: theme.border }]}>
           <TouchableOpacity
             style={styles.mealActionButton}
             onPress={() => handleEditMeal(meal)}
           >
-            <HugeiconsIcon icon={PencilEdit01Icon} size={18} color="#666" />
-            <Text style={styles.mealActionText}>Editar</Text>
+            <HugeiconsIcon icon={PencilEdit01Icon} size={18} color={theme.textSecondary} />
+            <Text style={[styles.mealActionText, { color: theme.textSecondary }]}>Editar</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.mealActionButton}
@@ -512,7 +594,7 @@ export default function DashboardScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: theme.background }]}>
       <Animated.ScrollView
         style={[
           styles.scrollView,
@@ -523,12 +605,18 @@ export default function DashboardScreen() {
         ]}
       >
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: theme.backgroundSecondary, borderBottomColor: theme.border }]}>
           <View>
-            <Text style={styles.headerTitle}>¡Hola {user?.name}!</Text>
-            <Text style={styles.headerSubtitle}>¿Qué vas a comer hoy?</Text>
+            <Text style={[styles.headerTitle, { color: theme.text }]}>¡Hola {user?.name}!</Text>
+            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>¿Qué vas a comer hoy?</Text>
           </View>
           <View style={styles.headerButtons}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={() => setShowShoppingList(true)}
+            >
+              <HugeiconsIcon icon={ShoppingBasket01Icon} size={20} color="#4CAF50" variant="solid" />
+            </TouchableOpacity>
             <TouchableOpacity
               style={styles.iconButton}
               onPress={() => setShowFavorites(true)}
@@ -579,7 +667,7 @@ export default function DashboardScreen() {
         {/* Statistics */}
         {meals.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Estadísticas</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>Estadísticas</Text>
             <View style={styles.statsContainer}>
               <View style={styles.statCard}>
                 <Text style={styles.statNumber}>{stats.total}</Text>
@@ -605,8 +693,9 @@ export default function DashboardScreen() {
         {meals.length > 0 && (
           <View style={styles.section}>
             <TextInput
-              style={styles.searchInput}
+              style={[styles.searchInput, { backgroundColor: theme.backgroundCard, borderColor: theme.border, color: theme.text }]}
               placeholder="Buscar comidas..."
+              placeholderTextColor={theme.textTertiary}
               value={searchQuery}
               onChangeText={setSearchQuery}
               clearButtonMode="while-editing"
@@ -737,27 +826,27 @@ export default function DashboardScreen() {
 
         {/* Meal History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>
+          <Text style={[styles.sectionTitle, { color: theme.text }]}>
             Historial de Comidas
             {filteredMeals.length !== meals.length && meals.length > 0 && (
-              <Text style={styles.resultCount}> ({filteredMeals.length} resultados)</Text>
+              <Text style={[styles.resultCount, { color: theme.textSecondary }]}> ({filteredMeals.length} resultados)</Text>
             )}
           </Text>
 
           {loading && meals.length === 0 ? (
-            <View style={styles.card}>
+            <View style={[styles.card, { backgroundColor: theme.backgroundCard }]}>
               <ActivityIndicator size="large" color="#FF8383" />
             </View>
           ) : meals.length === 0 ? (
-            <View style={styles.card}>
-              <Text style={styles.emptyText}>
+            <View style={[styles.card, { backgroundColor: theme.backgroundCard }]}>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
                 No hay comidas registradas aún.{"\n"}
                 ¡Comienza agregando tu primera comida!
               </Text>
             </View>
           ) : filteredMeals.length === 0 ? (
-            <View style={styles.card}>
-              <Text style={styles.emptyText}>
+            <View style={[styles.card, { backgroundColor: theme.backgroundCard }]}>
+              <Text style={[styles.emptyText, { color: theme.textSecondary }]}>
                 No se encontraron comidas con los filtros seleccionados.
               </Text>
             </View>
@@ -777,17 +866,18 @@ export default function DashboardScreen() {
         onRequestClose={handleCloseAddMeal}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Agregar Comida</Text>
+          <View style={[styles.modalContent, { backgroundColor: theme.backgroundCard }]}>
+            <Text style={[styles.modalTitle, { color: theme.text }]}>Agregar Comida</Text>
 
             <TextInput
-              style={styles.input}
+              style={[styles.input, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, color: theme.text }]}
               placeholder="Nombre de la comida"
+              placeholderTextColor={theme.textTertiary}
               value={mealName}
               onChangeText={setMealName}
             />
 
-            <Text style={styles.label}>Categoría:</Text>
+            <Text style={[styles.label, { color: theme.text }]}>Categoría:</Text>
             <View style={styles.categoryButtons}>
               {["desayuno", "almuerzo", "cena", "snack"].map((cat) => (
                 <TouchableOpacity
@@ -816,9 +906,46 @@ export default function DashboardScreen() {
               ))}
             </View>
 
+            {/* Botones de cámara/galería */}
+            <Text style={[styles.label, { color: theme.text }]}>Foto (opcional):</Text>
+            <View style={styles.imageButtonsContainer}>
+              <TouchableOpacity
+                style={[styles.imageButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+                onPress={handleTakePhoto}
+              >
+                <HugeiconsIcon icon={Camera01Icon} size={20} color={theme.textSecondary} />
+                <Text style={[styles.imageButtonText, { color: theme.text }]}>Cámara</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.imageButton, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border }]}
+                onPress={handlePickImage}
+              >
+                <HugeiconsIcon icon={Image01Icon} size={20} color={theme.textSecondary} />
+                <Text style={[styles.imageButtonText, { color: theme.text }]}>Galería</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Preview de la imagen */}
+            {mealImageUri && (
+              <View style={styles.imagePreviewContainer}>
+                <Image
+                  source={{ uri: mealImageUri }}
+                  style={styles.imagePreview}
+                  resizeMode="cover"
+                />
+                <TouchableOpacity
+                  style={styles.removeImageButton}
+                  onPress={() => setMealImageUri(null)}
+                >
+                  <HugeiconsIcon icon={CancelCircleIcon} size={24} color="#FF6B6B" />
+                </TouchableOpacity>
+              </View>
+            )}
+
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { backgroundColor: theme.backgroundSecondary, borderColor: theme.border, color: theme.text }]}
               placeholder="Notas (opcional)"
+              placeholderTextColor={theme.textTertiary}
               value={mealNotes}
               onChangeText={setMealNotes}
               multiline
@@ -827,10 +954,10 @@ export default function DashboardScreen() {
 
             <View style={styles.modalButtons}>
               <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
+                style={[styles.modalButton, styles.cancelButton, { backgroundColor: theme.backgroundSecondary }]}
                 onPress={handleCloseAddMeal}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+                <Text style={[styles.cancelButtonText, { color: theme.textSecondary }]}>Cancelar</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveButton]}
@@ -889,6 +1016,12 @@ export default function DashboardScreen() {
                       <View style={styles.recipeHeader}>
                         <Text style={styles.recipeName}>{recipe.name}</Text>
                         <View style={styles.recipeActions}>
+                          <TouchableOpacity
+                            style={styles.recipeActionButton}
+                            onPress={() => handleAddToShoppingList(recipe)}
+                          >
+                            <HugeiconsIcon icon={ShoppingBasket01Icon} size={22} color="#4CAF50" />
+                          </TouchableOpacity>
                           <TouchableOpacity
                             style={styles.recipeActionButton}
                             onPress={() => handleToggleFavorite(recipe)}
@@ -1070,6 +1203,21 @@ export default function DashboardScreen() {
           <FavoritesScreen
             userId={user.id}
             onClose={() => setShowFavorites(false)}
+          />
+        </Modal>
+      )}
+
+      {/* Shopping List Modal */}
+      {showShoppingList && user?.id && (
+        <Modal
+          visible={showShoppingList}
+          animationType="slide"
+          transparent={false}
+          onRequestClose={() => setShowShoppingList(false)}
+        >
+          <ShoppingListScreen
+            userId={user.id}
+            onClose={() => setShowShoppingList(false)}
           />
         </Modal>
       )}
@@ -1263,6 +1411,12 @@ const styles = StyleSheet.create({
     color: "#666",
     marginTop: 8,
     paddingLeft: 44,
+  },
+  mealImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginTop: 12,
   },
   mealActions: {
     flexDirection: "row",
@@ -1657,5 +1811,53 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 24,
     marginBottom: 8,
+  },
+  // Image picker styles
+  imageButtonsContainer: {
+    flexDirection: "row",
+    gap: 12,
+    marginBottom: 16,
+  },
+  imageButton: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#F5F5F5",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  imageButtonText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#666",
+  },
+  imagePreviewContainer: {
+    position: "relative",
+    marginBottom: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  imagePreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    padding: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
 });

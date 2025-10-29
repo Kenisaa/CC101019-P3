@@ -22,11 +22,13 @@ import {
   Key01Icon
 } from "@hugeicons/core-free-icons";
 import { useAuth } from "../hooks/useAuth";
+import { useTheme } from "../hooks/useTheme";
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api';
 
 export default function AuthScreen() {
   const { login } = useAuth();
+  const { theme } = useTheme();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -201,9 +203,9 @@ export default function AuthScreen() {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: theme.background }]}
     >
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: theme.background }]}>
         {/* Top Decorative Background */}
         <View style={styles.backgroundContainer}>
           <View style={styles.backgroundCircle1} />
@@ -224,7 +226,7 @@ export default function AuthScreen() {
               },40 T${Dimensions.get("window").width},40 L${Dimensions.get(
                 "window"
               ).width},100 L0,100 Z`}
-              fill="#FFFFFF"
+              fill={theme.background}
             />
           </Svg>
         </View>
@@ -232,7 +234,7 @@ export default function AuthScreen() {
         {/* Bottom Content */}
         <ScrollView
           style={styles.bottomContainer}
-          contentContainerStyle={styles.bottomContent}
+          contentContainerStyle={[styles.bottomContent, { backgroundColor: theme.background }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -246,7 +248,7 @@ export default function AuthScreen() {
               },
             ]}
           >
-            <Text style={styles.headingText}>
+            <Text style={[styles.headingText, { color: theme.text }]}>
               {step === "login" ? "Sign In" : step === "register" ? "Sign Up" : "Verify"}
             </Text>
             <View style={styles.headingLine} />
@@ -265,14 +267,14 @@ export default function AuthScreen() {
             >
               {/* Email Field */}
               <View style={styles.inputField}>
-                <Text style={styles.label}>Email</Text>
-                <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused]}>
-                  <HugeiconsIcon icon={Mail01Icon} size={20} color="#999" />
-                  <View style={styles.inputDivider} />
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Email</Text>
+                <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused, { borderBottomColor: emailFocused ? theme.primary : theme.border }]}>
+                  <HugeiconsIcon icon={Mail01Icon} size={20} color={theme.textTertiary} />
+                  <View style={[styles.inputDivider, { backgroundColor: theme.border }]} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="Enter your email"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.textTertiary}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -286,14 +288,14 @@ export default function AuthScreen() {
 
               {/* Password Field */}
               <View style={styles.inputField}>
-                <Text style={styles.label}>Password</Text>
-                <View style={[styles.inputBox, passwordFocused && styles.inputBoxFocused]}>
-                  <HugeiconsIcon icon={LockPasswordIcon} size={20} color="#999" />
-                  <View style={styles.inputDivider} />
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Password</Text>
+                <View style={[styles.inputBox, passwordFocused && styles.inputBoxFocused, { borderBottomColor: passwordFocused ? theme.primary : theme.border }]}>
+                  <HugeiconsIcon icon={LockPasswordIcon} size={20} color={theme.textTertiary} />
+                  <View style={[styles.inputDivider, { backgroundColor: theme.border }]} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="Enter your password"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.textTertiary}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
@@ -319,7 +321,7 @@ export default function AuthScreen() {
                 style={styles.secondaryButton}
                 onPress={() => setStep("register")}
               >
-                <Text style={styles.secondaryButtonText}>
+                <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>
                   Don't have an Account? <Text style={styles.linkText}>Sign Up</Text>
                 </Text>
               </TouchableOpacity>
@@ -336,14 +338,14 @@ export default function AuthScreen() {
             >
               {/* Name Field */}
               <View style={styles.inputField}>
-                <Text style={styles.label}>Name</Text>
-                <View style={[styles.inputBox, nameFocused && styles.inputBoxFocused]}>
-                  <HugeiconsIcon icon={User02Icon} size={20} color="#999" />
-                  <View style={styles.inputDivider} />
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Name</Text>
+                <View style={[styles.inputBox, nameFocused && styles.inputBoxFocused, { borderBottomColor: nameFocused ? theme.primary : theme.border }]}>
+                  <HugeiconsIcon icon={User02Icon} size={20} color={theme.textTertiary} />
+                  <View style={[styles.inputDivider, { backgroundColor: theme.border }]} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="Enter your name"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.textTertiary}
                     value={name}
                     onChangeText={setName}
                     autoComplete="name"
@@ -355,14 +357,14 @@ export default function AuthScreen() {
 
               {/* Email Field */}
               <View style={styles.inputField}>
-                <Text style={styles.label}>Email</Text>
-                <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused]}>
-                  <HugeiconsIcon icon={Mail01Icon} size={20} color="#999" />
-                  <View style={styles.inputDivider} />
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Email</Text>
+                <View style={[styles.inputBox, emailFocused && styles.inputBoxFocused, { borderBottomColor: emailFocused ? theme.primary : theme.border }]}>
+                  <HugeiconsIcon icon={Mail01Icon} size={20} color={theme.textTertiary} />
+                  <View style={[styles.inputDivider, { backgroundColor: theme.border }]} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="Enter your email"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.textTertiary}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -376,14 +378,14 @@ export default function AuthScreen() {
 
               {/* Password Field */}
               <View style={styles.inputField}>
-                <Text style={styles.label}>Password</Text>
-                <View style={[styles.inputBox, passwordFocused && styles.inputBoxFocused]}>
-                  <HugeiconsIcon icon={LockPasswordIcon} size={20} color="#999" />
-                  <View style={styles.inputDivider} />
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Password</Text>
+                <View style={[styles.inputBox, passwordFocused && styles.inputBoxFocused, { borderBottomColor: passwordFocused ? theme.primary : theme.border }]}>
+                  <HugeiconsIcon icon={LockPasswordIcon} size={20} color={theme.textTertiary} />
+                  <View style={[styles.inputDivider, { backgroundColor: theme.border }]} />
                   <TextInput
-                    style={styles.input}
+                    style={[styles.input, { color: theme.text }]}
                     placeholder="Enter your password"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.textTertiary}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
@@ -409,7 +411,7 @@ export default function AuthScreen() {
                 style={styles.secondaryButton}
                 onPress={() => setStep("login")}
               >
-                <Text style={styles.secondaryButtonText}>
+                <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>
                   Already have an Account? <Text style={styles.linkText}>Sign In</Text>
                 </Text>
               </TouchableOpacity>
@@ -426,14 +428,14 @@ export default function AuthScreen() {
             >
               {/* Code Field */}
               <View style={styles.inputField}>
-                <Text style={styles.label}>Verification Code</Text>
-                <View style={[styles.inputBox, codeFocused && styles.inputBoxFocused]}>
-                  <HugeiconsIcon icon={Key01Icon} size={20} color="#999" />
-                  <View style={styles.inputDivider} />
+                <Text style={[styles.label, { color: theme.textSecondary }]}>Verification Code</Text>
+                <View style={[styles.inputBox, codeFocused && styles.inputBoxFocused, { borderBottomColor: codeFocused ? theme.primary : theme.border }]}>
+                  <HugeiconsIcon icon={Key01Icon} size={20} color={theme.textTertiary} />
+                  <View style={[styles.inputDivider, { backgroundColor: theme.border }]} />
                   <TextInput
-                    style={[styles.input, styles.codeInput]}
+                    style={[styles.input, styles.codeInput, { color: theme.text }]}
                     placeholder="123456"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={theme.textTertiary}
                     value={verificationCode}
                     onChangeText={setVerificationCode}
                     keyboardType="number-pad"
@@ -459,7 +461,7 @@ export default function AuthScreen() {
                 style={styles.secondaryButton}
                 onPress={() => setStep("login")}
               >
-                <Text style={styles.secondaryButtonText}>
+                <Text style={[styles.secondaryButtonText, { color: theme.textSecondary }]}>
                   <Text style={styles.linkText}>Back to Login</Text>
                 </Text>
               </TouchableOpacity>
