@@ -4,10 +4,16 @@ Meal Buddy es una aplicación móvil de recomendaciones de comidas con IA que te
 
 ## 🚀 Características
 
-- **Autenticación con Teléfono**: Login seguro con OTP vía Firebase
-- **Recomendaciones con IA**: Sugerencias personalizadas usando OpenAI GPT-4o-mini
-- **Historial de Comidas**: Registra y consulta tus comidas
-- **Sistema de Suscripciones**: Plan gratuito y premium con Stripe
+- **Autenticación con Email/Teléfono**: Login seguro con OTP
+- **Recomendaciones con IA**: Sugerencias personalizadas usando Google Gemini AI
+- **Historial de Comidas**: Registra y consulta tus comidas con fotos
+- **Navegación tipo WhatsApp**: Tabs inferiores para acceso rápido
+- **Sistema de Favoritos**: Guarda tus recetas favoritas
+- **Lista de Compras**: Gestiona ingredientes y compras
+- **Preferencias Alimentarias**: Personaliza restricciones, alergias y gustos
+- **Notificaciones**: Recordatorios de comidas personalizables
+- **Temas Claro/Oscuro**: Personaliza la apariencia de la app
+- **Almacenamiento de Imágenes**: Fotos optimizadas guardadas en SQLite
 - **Multiplataforma**: Funciona en iOS y Android con Expo Go
 
 ## 📋 Requisitos Previos
@@ -15,9 +21,9 @@ Meal Buddy es una aplicación móvil de recomendaciones de comidas con IA que te
 - Node.js 18+ instalado
 - npm o yarn
 - Expo Go app instalada en tu dispositivo iOS o Android
-- Cuenta de Firebase
-- API Key de OpenAI (opcional, para recomendaciones)
-- Cuenta de Stripe (opcional, para pagos)
+- Cuenta de Firebase (para autenticación)
+- API Key de Google Gemini (para recomendaciones con IA)
+- Cuenta de email para envío de OTP (Gmail, Outlook, etc.)
 
 ## 🛠️ Instalación
 
@@ -26,35 +32,57 @@ Meal Buddy es una aplicación móvil de recomendaciones de comidas con IA que te
    cd meal-buddy-app
    ```
 
-2. **Instalar dependencias:**
+2. **Instalar dependencias del frontend:**
    ```bash
    npm install
    ```
 
-3. **Configurar variables de entorno:**
-
-   Crea un archivo `.env` en la raíz del proyecto basándote en `.env.example`:
-
+3. **Instalar dependencias del backend:**
    ```bash
-   cp .env.example .env
+   cd backend
+   npm install
+   cd ..
    ```
 
-   Edita el archivo `.env` con tus credenciales:
+4. **Configurar variables de entorno del frontend:**
+
+   Crea un archivo `.env` en la raíz del proyecto:
 
    ```env
-   # Firebase Configuration
-   EXPO_PUBLIC_FIREBASE_API_KEY=tu_api_key
+   # API URL (desarrollo local)
+   EXPO_PUBLIC_API_URL=http://localhost:3000/api
+
+   # Firebase Configuration (para autenticación)
+   EXPO_PUBLIC_FIREBASE_API_KEY=tu_firebase_api_key
    EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN=tu-proyecto.firebaseapp.com
    EXPO_PUBLIC_FIREBASE_PROJECT_ID=tu-proyecto-id
    EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET=tu-proyecto.appspot.com
    EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=tu_sender_id
    EXPO_PUBLIC_FIREBASE_APP_ID=tu_app_id
+   ```
 
-   # OpenAI API (para recomendaciones)
-   EXPO_PUBLIC_OPENAI_API_KEY=tu_openai_api_key
+5. **Configurar variables de entorno del backend:**
 
-   # Stripe (para pagos)
-   EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY=tu_stripe_key
+   Crea un archivo `.env` en la carpeta `backend/`:
+
+   ```env
+   # Puerto del servidor
+   PORT=3000
+
+   # JWT Secret (genera uno aleatorio)
+   JWT_SECRET=tu_secreto_super_seguro
+
+   # Google Gemini API
+   GEMINI_API_KEY=tu_gemini_api_key
+
+   # Configuración de Email (para OTP)
+   EMAIL_USER=tu_email@gmail.com
+   EMAIL_PASSWORD=tu_app_password
+
+   # Firebase Admin SDK (opcional, para verificación adicional)
+   FIREBASE_PROJECT_ID=tu-proyecto-id
+   FIREBASE_PRIVATE_KEY=tu_private_key
+   FIREBASE_CLIENT_EMAIL=tu_service_account_email
    ```
 
 ## 🔥 Configuración de Firebase
@@ -102,14 +130,28 @@ Meal Buddy es una aplicación móvil de recomendaciones de comidas con IA que te
 
 ## 📱 Ejecutar la App
 
-### Con Expo Go (Recomendado para desarrollo)
+### Opción 1: Usando el script de desarrollo (Recomendado)
 
-1. **Iniciar el servidor de desarrollo:**
+1. **Iniciar backend y frontend simultáneamente:**
+   ```bash
+   npm run dev
+   ```
+   Este comando inicia el backend en el puerto 3000 y el frontend con Expo.
+
+### Opción 2: Iniciar manualmente
+
+1. **Iniciar el backend (Terminal 1):**
+   ```bash
+   cd backend
+   npm start
+   ```
+
+2. **Iniciar el frontend (Terminal 2):**
    ```bash
    npm start
    ```
 
-2. **Escanear el QR:**
+3. **Escanear el QR:**
    - **iOS**: Abre la app de Cámara y escanea el código QR
    - **Android**: Abre Expo Go y escanea el código QR
 
@@ -127,65 +169,127 @@ npm run android
 
 ```
 meal-buddy-app/
+├── backend/              # Servidor Node.js + Express
+│   ├── src/
+│   │   ├── controllers/  # Controladores de autenticación
+│   │   ├── models/       # Modelos de base de datos (SQLite)
+│   │   ├── routes/       # Rutas de API
+│   │   │   ├── auth.js
+│   │   │   ├── meals.js
+│   │   │   ├── recommendations.js
+│   │   │   ├── favorites.js
+│   │   │   └── shopping-list.js
+│   │   ├── utils/        # Utilidades (email, etc.)
+│   │   └── index.js      # Entry point del servidor
+│   ├── data/             # Base de datos SQLite
+│   │   └── mealbuddy.db
+│   └── package.json
 ├── src/
+│   ├── components/       # Componentes reutilizables
+│   │   ├── NotificationSettings.tsx
+│   │   └── ThemeSelector.tsx
 │   ├── config/           # Configuración (Firebase, etc.)
 │   │   └── firebase.ts
+│   ├── contexts/         # Contextos de React
+│   │   └── ThemeContext.tsx
 │   ├── hooks/            # Custom hooks de React
-│   │   ├── useAuth.ts
-│   │   └── useSubscription.ts
+│   │   ├── useAuth.tsx
+│   │   └── useTheme.tsx
 │   ├── navigation/       # Navegación de la app
 │   │   ├── AppNavigator.tsx
+│   │   ├── BottomTabNavigator.tsx
 │   │   └── types.ts
 │   ├── screens/          # Pantallas principales
+│   │   ├── WelcomeScreen.tsx
 │   │   ├── AuthScreen.tsx
-│   │   └── DashboardScreen.tsx
-│   ├── services/         # Servicios y lógica de negocio
-│   │   ├── firestore.ts
-│   │   ├── subscription.ts
-│   │   └── recommendations.ts
-│   └── types/            # Tipos de TypeScript
-├── web-backup/           # Backup del proyecto web original
+│   │   ├── DashboardScreen.tsx
+│   │   ├── PreferencesScreen.tsx
+│   │   ├── FavoritesScreen.tsx
+│   │   └── ShoppingListScreen.tsx
+│   └── services/         # Servicios y lógica de negocio
+│       ├── meals.ts      # API de comidas
+│       ├── favorites.ts  # API de favoritos
+│       ├── shoppingList.ts
+│       ├── images.ts     # Manejo de imágenes
+│       └── notifications.ts
 ├── App.tsx               # Componente principal
 ├── package.json
-├── .env                  # Variables de entorno (crear)
-└── .env.example          # Ejemplo de variables de entorno
+└── .env                  # Variables de entorno (crear)
 ```
 
 ## 🎯 Funcionalidades Principales
 
 ### Autenticación
-- Login con número de teléfono
-- Verificación OTP
-- Gestión automática de sesión
+- Login con email o número de teléfono
+- Verificación OTP enviada por email
+- Gestión automática de sesión con JWT
+- Firebase Authentication para seguridad adicional
+
+### Navegación
+- **Tabs inferiores estilo WhatsApp iOS**:
+  - Inicio: Dashboard con comidas
+  - Favoritos: Recetas guardadas
+  - Compras: Lista de compras
+  - Preferencias: Configuración de usuario
 
 ### Dashboard
-- Agregar comidas con categoría (Desayuno, Comida, Cena, Snack)
-- Ver historial de comidas
+- Agregar comidas con categoría (Desayuno, Almuerzo, Cena, Snack)
+- **Subir fotos** optimizadas desde cámara o galería
+- Ver historial de comidas con búsqueda y filtros
+- Estadísticas por categoría de comida
 - Sistema de pull-to-refresh
-- Indicador de plan premium
 
-### Recomendaciones (Próximamente)
-- Integración con OpenAI para sugerencias personalizadas
-- Basadas en historial de comidas
-- Recetas completas con ingredientes
+### Recomendaciones con IA
+- Integración con **Google Gemini AI**
+- Sugerencias personalizadas basadas en:
+  - Historial de comidas
+  - Preferencias alimentarias
+  - Restricciones dietéticas
+  - Alergias
+  - Cocinas favoritas
+- Recetas completas con ingredientes e instrucciones
+- Tiempo de preparación y dificultad
 
-### Suscripciones
+### Favoritos
+- Guardar recetas favoritas
+- Ver detalles completos
+- Compartir recetas
+- Agregar ingredientes a lista de compras
 
-**Plan Gratuito:**
-- 3 recomendaciones por día
-- 1 receta por recomendación
-- 7 días de historial
+### Lista de Compras
+- Agregar items manualmente
+- Importar ingredientes desde recetas
+- Marcar items como comprados
+- Categorización automática
+- Compartir lista completa
+- Limpiar items comprados
 
-**Plan Premium:**
-- Recomendaciones ilimitadas
-- 3 recetas por recomendación
-- 365 días de historial
+### Preferencias
+- **Restricciones dietéticas**: Vegetariano, vegano, sin gluten, etc.
+- **Alergias**: Gestión de alérgenos
+- **Cocinas favoritas**: Italiana, mexicana, asiática, etc.
+- **Alimentos que no te gustan**
+- **Notificaciones**: Configurar recordatorios por comida
+- **Tema**: Modo claro, oscuro o automático
+
+### Almacenamiento de Imágenes
+- Fotos optimizadas automáticamente para iPhone de alta resolución
+- Redimensionamiento a 800px de ancho
+- Compresión inteligente (~100-300KB por imagen)
+- Almacenamiento en SQLite como base64
+- Sin dependencia de servicios externos
 
 ## 🔧 Scripts Disponibles
 
 ```bash
-# Iniciar servidor de desarrollo
+# Iniciar backend y frontend simultáneamente
+npm run dev
+
+# Iniciar solo el frontend
 npm start
+
+# Iniciar solo el backend
+npm run backend
 
 # Ejecutar en iOS
 npm run ios
@@ -193,14 +297,23 @@ npm run ios
 # Ejecutar en Android
 npm run android
 
-# Ejecutar en web (experimental)
-npm run web
-
-# Limpiar caché
-npm start --clear
+# Limpiar caché de Expo
+npm start -- --clear
 ```
 
 ## ⚠️ Problemas Comunes
+
+### Backend no se conecta
+Si la app no se conecta al backend:
+- Verifica que el backend esté corriendo en `http://localhost:3000`
+- En dispositivos físicos, usa la IP de tu computadora en lugar de `localhost`
+- Asegúrate de que `EXPO_PUBLIC_API_URL` esté correctamente configurado
+
+### Error al subir imágenes
+Si recibes error "Payload Too Large":
+- El backend ya está configurado para aceptar hasta 10MB
+- Las imágenes se optimizan automáticamente a ~100-300KB
+- Reinicia el backend si acabas de actualizar
 
 ### Error de Firebase en iOS
 Si recibes errores de autenticación en iOS:
@@ -211,7 +324,7 @@ Si recibes errores de autenticación en iOS:
 Si encuentras errores con módulos nativos:
 ```bash
 # Limpiar caché de Expo
-expo start --clear
+npm start -- --clear
 
 # O reinstalar dependencias
 rm -rf node_modules
@@ -219,9 +332,14 @@ npm install
 ```
 
 ### Variables de entorno no cargadas
-- Asegúrate de que el archivo `.env` esté en la raíz
+- Asegúrate de que el archivo `.env` esté en la raíz del proyecto y en `backend/`
 - Reinicia el servidor de desarrollo después de modificar `.env`
-- Las variables deben comenzar con `EXPO_PUBLIC_` para ser accesibles en el cliente
+- Las variables del frontend deben comenzar con `EXPO_PUBLIC_`
+
+### Error con expo-file-system
+Si ves warnings sobre API deprecada:
+- Ya está configurado para usar la API legacy
+- El warning es normal y no afecta la funcionalidad
 
 ## 🚀 Deployment
 
