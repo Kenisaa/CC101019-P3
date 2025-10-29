@@ -68,10 +68,27 @@ export default function DashboardScreen() {
   const [mealCategory, setMealCategory] = useState("desayuno");
   const [mealNotes, setMealNotes] = useState("");
 
+  // Search and filter states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("todos");
+  const [sortOrder, setSortOrder] = useState<"date" | "category">("date");
+
+  // Loading message state
+  const [loadingMessage, setLoadingMessage] = useState("");
+  const loadingMessages = [
+    "🍳 Cocinando tu receta perfecta...",
+    "👨‍🍳 El chef está seleccionando ingredientes...",
+    "🔥 Calentando los fogones...",
+    "📖 Consultando el libro de recetas...",
+    "✨ Mezclando sabores increíbles...",
+    "🥘 Preparando algo delicioso...",
+    "🎨 Creando una obra maestra culinaria...",
+  ];
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
-  const buttonScale = useRef(new Animated.Value(1)).current;
+  const spinValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (user?.id) {
@@ -93,6 +110,21 @@ export default function DashboardScreen() {
       ]).start();
     }
   }, [user]);
+
+  // Spin animation for loading
+  useEffect(() => {
+    if (loading && loadingMessage !== "") {
+      spinValue.setValue(0);
+      Animated.loop(
+        Animated.timing(spinValue, {
+          toValue: 1,
+          duration: 2000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        })
+      ).start();
+    }
+  }, [loading, loadingMessage]);
 
   const loadMealHistory = async () => {
     if (!user?.id) return;
@@ -151,8 +183,21 @@ export default function DashboardScreen() {
 
     try {
       setLoading(true);
+
+      // Set initial loading message
+      const randomIndex = Math.floor(Math.random() * loadingMessages.length);
+      setLoadingMessage(loadingMessages[randomIndex]);
+
+      // Rotate through loading messages every 2 seconds
+      const messageInterval = setInterval(() => {
+        const newIndex = Math.floor(Math.random() * loadingMessages.length);
+        setLoadingMessage(loadingMessages[newIndex]);
+      }, 2000);
+
       const result = await generateRecommendation(user.id, "free");
-      
+
+      clearInterval(messageInterval);
+
       if (result.success && result.recommendation) {
         setRecommendation(result.recommendation);
         setShowRecommendation(true);
@@ -163,6 +208,7 @@ export default function DashboardScreen() {
       Alert.alert("Error", error.response?.data?.message || "Error al generar recomendación");
     } finally {
       setLoading(false);
+      setLoadingMessage("");
     }
   };
 
@@ -356,6 +402,46 @@ export default function DashboardScreen() {
     }
   };
 
+  // Filter, sort and calculate stats
+  const getFilteredAndSortedMeals = () => {
+    let filtered = [...meals];
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      filtered = filtered.filter((meal) =>
+        meal.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Apply category filter
+    if (filterCategory !== "todos") {
+      filtered = filtered.filter((meal) => meal.category === filterCategory);
+    }
+
+    // Apply sorting
+    if (sortOrder === "date") {
+      filtered.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    } else {
+      filtered.sort((a, b) => a.category.localeCompare(b.category));
+    }
+
+    return filtered;
+  };
+
+  const getStats = () => {
+    const stats = {
+      total: meals.length,
+      desayuno: meals.filter((m) => m.category === "desayuno").length,
+      almuerzo: meals.filter((m) => m.category === "almuerzo").length,
+      cena: meals.filter((m) => m.category === "cena").length,
+      snack: meals.filter((m) => m.category === "snack").length,
+    };
+    return stats;
+  };
+
+  const filteredMeals = getFilteredAndSortedMeals();
+  const stats = getStats();
+
   // Animated Meal Card Component
   const AnimatedMealCard = ({ meal, index }: { meal: Meal; index: number }) => {
     const cardFade = useRef(new Animated.Value(0)).current;
@@ -490,10 +576,174 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Statistics */}
+        {meals.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Estadísticas</Text>
+            <View style={styles.statsContainer}>
+              <View style={styles.statCard}>
+                <Text style={styles.statNumber}>{stats.total}</Text>
+                <Text style={styles.statLabel}>Total</Text>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: "#FFF8E1" }]}>
+                <Text style={[styles.statNumber, { color: "#FFB84D" }]}>{stats.desayuno}</Text>
+                <Text style={styles.statLabel}>Desayunos</Text>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: "#FFE5E5" }]}>
+                <Text style={[styles.statNumber, { color: "#FF6B6B" }]}>{stats.almuerzo}</Text>
+                <Text style={styles.statLabel}>Almuerzos</Text>
+              </View>
+              <View style={[styles.statCard, { backgroundColor: "#E8EEFF" }]}>
+                <Text style={[styles.statNumber, { color: "#6B8AFF" }]}>{stats.cena}</Text>
+                <Text style={styles.statLabel}>Cenas</Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Search and Filters */}
+        {meals.length > 0 && (
+          <View style={styles.section}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Buscar comidas..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              clearButtonMode="while-editing"
+            />
+
+            <View style={styles.filterContainer}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    filterCategory === "todos" && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setFilterCategory("todos")}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      filterCategory === "todos" && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    Todas
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    filterCategory === "desayuno" && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setFilterCategory("desayuno")}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      filterCategory === "desayuno" && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    Desayuno
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    filterCategory === "almuerzo" && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setFilterCategory("almuerzo")}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      filterCategory === "almuerzo" && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    Almuerzo
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    filterCategory === "cena" && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setFilterCategory("cena")}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      filterCategory === "cena" && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    Cena
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.filterButton,
+                    filterCategory === "snack" && styles.filterButtonActive,
+                  ]}
+                  onPress={() => setFilterCategory("snack")}
+                >
+                  <Text
+                    style={[
+                      styles.filterButtonText,
+                      filterCategory === "snack" && styles.filterButtonTextActive,
+                    ]}
+                  >
+                    Snack
+                  </Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </View>
+
+            <View style={styles.sortContainer}>
+              <Text style={styles.sortLabel}>Ordenar por:</Text>
+              <TouchableOpacity
+                style={[
+                  styles.sortButton,
+                  sortOrder === "date" && styles.sortButtonActive,
+                ]}
+                onPress={() => setSortOrder("date")}
+              >
+                <Text
+                  style={[
+                    styles.sortButtonText,
+                    sortOrder === "date" && styles.sortButtonTextActive,
+                  ]}
+                >
+                  Fecha
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.sortButton,
+                  sortOrder === "category" && styles.sortButtonActive,
+                ]}
+                onPress={() => setSortOrder("category")}
+              >
+                <Text
+                  style={[
+                    styles.sortButtonText,
+                    sortOrder === "category" && styles.sortButtonTextActive,
+                  ]}
+                >
+                  Categoría
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
+
         {/* Meal History */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Historial de Comidas</Text>
-          
+          <Text style={styles.sectionTitle}>
+            Historial de Comidas
+            {filteredMeals.length !== meals.length && meals.length > 0 && (
+              <Text style={styles.resultCount}> ({filteredMeals.length} resultados)</Text>
+            )}
+          </Text>
+
           {loading && meals.length === 0 ? (
             <View style={styles.card}>
               <ActivityIndicator size="large" color="#FF8383" />
@@ -505,8 +755,14 @@ export default function DashboardScreen() {
                 ¡Comienza agregando tu primera comida!
               </Text>
             </View>
+          ) : filteredMeals.length === 0 ? (
+            <View style={styles.card}>
+              <Text style={styles.emptyText}>
+                No se encontraron comidas con los filtros seleccionados.
+              </Text>
+            </View>
           ) : (
-            meals.map((meal, index) => (
+            filteredMeals.map((meal, index) => (
               <AnimatedMealCard key={meal.id} meal={meal} index={index} />
             ))
           )}
@@ -817,6 +1073,34 @@ export default function DashboardScreen() {
           />
         </Modal>
       )}
+
+      {/* Loading Modal */}
+      <Modal
+        visible={loading && loadingMessage !== ""}
+        animationType="fade"
+        transparent={true}
+      >
+        <View style={styles.loadingModalOverlay}>
+          <View style={styles.loadingModalContent}>
+            <Animated.View
+              style={{
+                transform: [
+                  {
+                    rotate: spinValue.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0deg', '360deg'],
+                    }),
+                  },
+                ],
+              }}
+            >
+              <HugeiconsIcon icon={AiBrain01Icon} size={64} color="#FF8383" />
+            </Animated.View>
+            <Text style={styles.loadingModalText}>{loadingMessage}</Text>
+            <ActivityIndicator size="small" color="#FF8383" style={{ marginTop: 8 }} />
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -1245,5 +1529,133 @@ const styles = StyleSheet.create({
     backgroundColor: "#F0F8FF",
     padding: 12,
     borderRadius: 8,
+  },
+  // Statistics styles
+  statsContainer: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 12,
+  },
+  statCard: {
+    flex: 1,
+    backgroundColor: "#FFF",
+    padding: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#EEE",
+  },
+  statNumber: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#FF8383",
+    marginBottom: 4,
+  },
+  statLabel: {
+    fontSize: 12,
+    color: "#666",
+    fontWeight: "500",
+  },
+  // Search styles
+  searchInput: {
+    backgroundColor: "#FFF",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    borderWidth: 1,
+    borderColor: "#EEE",
+    marginBottom: 12,
+  },
+  // Filter styles
+  filterContainer: {
+    marginBottom: 12,
+  },
+  filterButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#DDD",
+    marginRight: 8,
+  },
+  filterButtonActive: {
+    backgroundColor: "#FF8383",
+    borderColor: "#FF8383",
+  },
+  filterButtonText: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+  },
+  filterButtonTextActive: {
+    color: "#FFF",
+  },
+  // Sort styles
+  sortContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  sortLabel: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+  },
+  sortButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    backgroundColor: "#FFF",
+    borderWidth: 1,
+    borderColor: "#DDD",
+  },
+  sortButtonActive: {
+    backgroundColor: "#F5F5F5",
+    borderColor: "#FF8383",
+  },
+  sortButtonText: {
+    fontSize: 13,
+    color: "#666",
+    fontWeight: "500",
+  },
+  sortButtonTextActive: {
+    color: "#FF8383",
+  },
+  resultCount: {
+    fontSize: 14,
+    color: "#999",
+    fontWeight: "400",
+  },
+  // Loading modal styles
+  loadingModalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingModalContent: {
+    backgroundColor: "#FFF",
+    borderRadius: 24,
+    padding: 40,
+    alignItems: "center",
+    width: "80%",
+    maxWidth: 300,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  loadingModalText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    textAlign: "center",
+    marginTop: 24,
+    marginBottom: 8,
   },
 });
