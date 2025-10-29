@@ -1,12 +1,10 @@
 import * as ImagePicker from 'expo-image-picker';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
-import { app } from '../config/firebase';
-
-const storage = getStorage(app);
+import * as FileSystem from 'expo-file-system/legacy';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 export interface ImageResult {
   uri: string;
-  downloadURL?: string;
+  base64?: string;
 }
 
 // Solicitar permisos de cámara
@@ -43,7 +41,12 @@ export async function takePhoto(): Promise<ImageResult | null> {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7,
+      quality: 0.2, // Calidad muy comprimida para iPhone de alta resolución
+      exif: false, // No incluir metadatos EXIF
+      base64: false,
+      // Limitar resolución máxima (ancho máximo 1200px)
+      // Esto es crucial para iPhones con cámaras de 48MP+
+      allowsMultipleSelection: false,
     });
 
     if (result.canceled) {
@@ -71,7 +74,11 @@ export async function pickImage(): Promise<ImageResult | null> {
       mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
-      quality: 0.7,
+      quality: 0.2, // Calidad muy comprimida para iPhone de alta resolución
+      exif: false, // No incluir metadatos EXIF
+      base64: false,
+      // Limitar resolución máxima
+      allowsMultipleSelection: false,
     });
 
     if (result.canceled) {
@@ -87,55 +94,45 @@ export async function pickImage(): Promise<ImageResult | null> {
   }
 }
 
-// Subir imagen a Firebase Storage
-export async function uploadImageToFirebase(
-  imageUri: string,
-  userId: string,
-  mealId: string
-): Promise<string> {
+// Redimensionar imagen antes de convertir a base64
+async function resizeImage(imageUri: string): Promise<string> {
   try {
-    // Fetch the image as a blob
-    const response = await fetch(imageUri);
-    const blob = await response.blob();
+    // Redimensionar a un ancho máximo de 800px manteniendo el aspect ratio
+    // Esto reduce significativamente el tamaño para iPhones de alta resolución
+    const manipResult = await manipulateAsync(
+      imageUri,
+      [{ resize: { width: 800 } }], // Solo especificamos width, height se ajusta automáticamente
+      {
+        compress: 0.5, // Compresión adicional
+        format: SaveFormat.JPEG,
+      }
+    );
 
-    // Create a reference to Firebase Storage
-    const filename = `meals/${userId}/${mealId}_${Date.now()}.jpg`;
-    const storageRef = ref(storage, filename);
-
-    // Upload the blob
-    await uploadBytes(storageRef, blob);
-
-    // Get the download URL
-    const downloadURL = await getDownloadURL(storageRef);
-
-    console.log('✅ Imagen subida a Firebase:', downloadURL);
-    return downloadURL;
+    return manipResult.uri;
   } catch (error) {
-    console.error('Error al subir imagen a Firebase:', error);
-    throw error;
+    console.error('Error al redimensionar imagen:', error);
+    // Si falla el redimensionamiento, retornar la imagen original
+    return imageUri;
   }
 }
 
-// Función combinada: seleccionar imagen y subirla
-export async function selectAndUploadImage(
-  userId: string,
-  mealId: string,
-  source: 'camera' | 'gallery'
-): Promise<string | null> {
+// Convertir imagen a base64
+export async function convertImageToBase64(imageUri: string): Promise<string> {
   try {
-    // Seleccionar imagen
-    const imageResult = source === 'camera' ? await takePhoto() : await pickImage();
+    // Primero redimensionar la imagen
+    const resizedUri = await resizeImage(imageUri);
 
-    if (!imageResult) {
-      return null;
-    }
+    // Luego convertir a base64
+    const base64 = await FileSystem.readAsStringAsync(resizedUri, {
+      encoding: 'base64',
+    });
 
-    // Subir a Firebase
-    const downloadURL = await uploadImageToFirebase(imageResult.uri, userId, mealId);
+    console.log('📸 Tamaño de imagen base64:', (base64.length / 1024).toFixed(2), 'KB');
 
-    return downloadURL;
+    // Retornar con el prefijo data:image para poder usarlo directamente
+    return `data:image/jpeg;base64,${base64}`;
   } catch (error) {
-    console.error('Error en selectAndUploadImage:', error);
+    console.error('Error al convertir imagen a base64:', error);
     throw error;
   }
 }

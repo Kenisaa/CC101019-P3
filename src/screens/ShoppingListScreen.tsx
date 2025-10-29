@@ -34,7 +34,7 @@ import { useTheme } from "../hooks/useTheme";
 
 interface ShoppingListScreenProps {
   userId: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export default function ShoppingListScreen({
@@ -191,9 +191,11 @@ export default function ShoppingListScreen({
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { backgroundColor: theme.backgroundSecondary, borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.backButton}>
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color={theme.text} />
-        </TouchableOpacity>
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color={theme.text} />
+          </TouchableOpacity>
+        )}
         <View style={styles.headerTitleContainer}>
           <HugeiconsIcon
             icon={ShoppingBasket01Icon}
@@ -203,7 +205,7 @@ export default function ShoppingListScreen({
           />
           <Text style={[styles.headerTitle, { color: theme.text }]}>Lista de Compras</Text>
         </View>
-        <View style={{ width: 24 }} />
+        {onClose && <View style={{ width: 24 }} />}
       </View>
 
       <View style={[styles.actionsBar, { backgroundColor: theme.backgroundSecondary, borderBottomColor: theme.border }]}>

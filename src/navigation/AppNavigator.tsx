@@ -8,7 +8,7 @@ import { ActivityIndicator, View } from "react-native";
 // Screens
 import WelcomeScreen from "../screens/WelcomeScreen";
 import AuthScreen from "../screens/AuthScreen";
-import DashboardScreen from "../screens/DashboardScreen";
+import BottomTabNavigator from "./BottomTabNavigator";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
@@ -41,7 +41,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Auth" component={AuthScreen} />
           </>
         ) : (
-          <Stack.Screen name="Dashboard" component={DashboardScreen} />
+          <Stack.Screen name="Dashboard" component={BottomTabNavigator} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

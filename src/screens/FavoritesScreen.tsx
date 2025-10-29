@@ -26,7 +26,7 @@ import {
 
 interface FavoritesScreenProps {
   userId: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 export default function FavoritesScreen({
@@ -105,14 +105,16 @@ export default function FavoritesScreen({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onClose} style={styles.backButton}>
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color="#000" />
-        </TouchableOpacity>
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color="#000" />
+          </TouchableOpacity>
+        )}
         <View style={styles.headerTitleContainer}>
           <HugeiconsIcon icon={FavouriteIcon} size={24} color="#FF8383" variant="solid" />
           <Text style={styles.headerTitle}>Recetas Favoritas</Text>
         </View>
-        <View style={{ width: 24 }} />
+        {onClose && <View style={{ width: 24 }} />}
       </View>
 
       <ScrollView style={styles.scrollView}>

@@ -52,11 +52,8 @@ import {
   removeFavoriteRecipe,
 } from "../services/favorites";
 import { addItemsFromRecipe } from "../services/shoppingList";
-import { takePhoto, pickImage, uploadImageToFirebase } from "../services/images";
+import { takePhoto, pickImage, convertImageToBase64 } from "../services/images";
 import { useTheme } from "../hooks/useTheme";
-import PreferencesScreen from "./PreferencesScreen";
-import FavoritesScreen from "./FavoritesScreen";
-import ShoppingListScreen from "./ShoppingListScreen";
 
 export default function DashboardScreen() {
   const { user, logout } = useAuth();
@@ -66,10 +63,7 @@ export default function DashboardScreen() {
   const [recommendation, setRecommendation] = useState<Recommendation | null>(null);
   const [showAddMeal, setShowAddMeal] = useState(false);
   const [showRecommendation, setShowRecommendation] = useState(false);
-  const [showPreferences, setShowPreferences] = useState(false);
   const [showEditMeal, setShowEditMeal] = useState(false);
-  const [showFavorites, setShowFavorites] = useState(false);
-  const [showShoppingList, setShowShoppingList] = useState(false);
   const [editingMeal, setEditingMeal] = useState<Meal | null>(null);
   const [favoriteRecipes, setFavoriteRecipes] = useState<Set<string>>(new Set());
 
@@ -162,32 +156,26 @@ export default function DashboardScreen() {
     try {
       setLoading(true);
 
-      // Primero agregamos la comida sin la imagen para obtener el ID
+      // Convertir imagen a base64 si existe
+      let imageBase64: string | undefined;
+      if (mealImageUri) {
+        try {
+          imageBase64 = await convertImageToBase64(mealImageUri);
+        } catch (imageError) {
+          console.error("Error al convertir imagen:", imageError);
+          Alert.alert("Advertencia", "Hubo un error al procesar la imagen");
+        }
+      }
+
+      // Agregamos la comida con la imagen en base64
       const result = await addMeal(user.id, {
         name: mealName,
         category: mealCategory,
         notes: mealNotes,
+        imageUrl: imageBase64,
       });
 
       if (result.success) {
-        const mealId = result.id;
-
-        // Si hay una imagen, la subimos a Firebase y actualizamos la comida
-        if (mealImageUri) {
-          try {
-            const firebaseUrl = await uploadImageToFirebase(mealImageUri, user.id, mealId);
-
-            // Actualizamos la comida con la URL de Firebase
-            await updateMeal(mealId, user.id, {
-              imageUrl: firebaseUrl,
-            });
-          } catch (imageError) {
-            console.error("Error al subir imagen:", imageError);
-            // Continuamos aunque falle la imagen
-            Alert.alert("Advertencia", "La comida se guardó pero hubo un error al subir la imagen");
-          }
-        }
-
         Alert.alert("¡Éxito!", "Comida agregada correctamente");
         setMealName("");
         setMealCategory("desayuno");
@@ -606,29 +594,11 @@ export default function DashboardScreen() {
       >
         {/* Header */}
         <View style={[styles.header, { backgroundColor: theme.backgroundSecondary, borderBottomColor: theme.border }]}>
-          <View>
-            <Text style={[styles.headerTitle, { color: theme.text }]}>¡Hola {user?.name}!</Text>
-            <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>¿Qué vas a comer hoy?</Text>
-          </View>
-          <View style={styles.headerButtons}>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setShowShoppingList(true)}
-            >
-              <HugeiconsIcon icon={ShoppingBasket01Icon} size={20} color="#4CAF50" variant="solid" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.iconButton}
-              onPress={() => setShowFavorites(true)}
-            >
-              <HugeiconsIcon icon={FavouriteIcon} size={20} color="#FF8383" variant="solid" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.preferencesButton}
-              onPress={() => setShowPreferences(true)}
-            >
-              <Text style={styles.preferencesButtonText}>Preferencias</Text>
-            </TouchableOpacity>
+          <View style={styles.headerTop}>
+            <View>
+              <Text style={[styles.headerTitle, { color: theme.text }]}>¡Hola {user?.name}!</Text>
+              <Text style={[styles.headerSubtitle, { color: theme.textSecondary }]}>¿Qué vas a comer hoy?</Text>
+            </View>
             <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
               <Text style={styles.signOutButtonText}>Salir</Text>
             </TouchableOpacity>
@@ -1177,50 +1147,6 @@ export default function DashboardScreen() {
         </View>
       </Modal>
 
-      {/* Preferences Modal */}
-      {showPreferences && user?.id && (
-        <Modal
-          visible={showPreferences}
-          animationType="slide"
-          transparent={false}
-          onRequestClose={() => setShowPreferences(false)}
-        >
-          <PreferencesScreen
-            userId={user.id}
-            onClose={() => setShowPreferences(false)}
-          />
-        </Modal>
-      )}
-
-      {/* Favorites Modal */}
-      {showFavorites && user?.id && (
-        <Modal
-          visible={showFavorites}
-          animationType="slide"
-          transparent={false}
-          onRequestClose={() => setShowFavorites(false)}
-        >
-          <FavoritesScreen
-            userId={user.id}
-            onClose={() => setShowFavorites(false)}
-          />
-        </Modal>
-      )}
-
-      {/* Shopping List Modal */}
-      {showShoppingList && user?.id && (
-        <Modal
-          visible={showShoppingList}
-          animationType="slide"
-          transparent={false}
-          onRequestClose={() => setShowShoppingList(false)}
-        >
-          <ShoppingListScreen
-            userId={user.id}
-            onClose={() => setShowShoppingList(false)}
-          />
-        </Modal>
-      )}
 
       {/* Loading Modal */}
       <Modal
@@ -1262,14 +1188,18 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+    flexDirection: "column",
     padding: 20,
     paddingTop: 60,
     backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#EEE",
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 24,
@@ -1280,28 +1210,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     marginTop: 4,
-  },
-  headerButtons: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  iconButton: {
-    padding: 8,
-    borderWidth: 1,
-    borderColor: "#DDD",
-    borderRadius: 8,
-  },
-  preferencesButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    backgroundColor: "#FF8383",
-    borderRadius: 8,
-  },
-  preferencesButtonText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "white",
   },
   signOutButton: {
     paddingHorizontal: 16,

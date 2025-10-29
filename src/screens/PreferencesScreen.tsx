@@ -25,7 +25,7 @@ const API_URL = process.env.EXPO_PUBLIC_API_URL || "http://localhost:3000/api";
 
 interface PreferencesScreenProps {
   userId: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 interface UserPreferences {
@@ -105,7 +105,7 @@ export default function PreferencesScreen({ userId, onClose }: PreferencesScreen
 
       if (response.data.success) {
         Alert.alert("¡Guardado!", "Tus preferencias se guardaron correctamente");
-        onClose();
+        onClose?.();
       }
     } catch (error: any) {
       Alert.alert("Error", error.message || "No se pudieron guardar las preferencias");
@@ -169,14 +169,16 @@ export default function PreferencesScreen({ userId, onClose }: PreferencesScreen
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
       <View style={[styles.header, { backgroundColor: theme.backgroundSecondary, borderBottomColor: theme.border }]}>
-        <TouchableOpacity onPress={onClose} style={styles.backButton}>
-          <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color={theme.text} />
-        </TouchableOpacity>
+        {onClose && (
+          <TouchableOpacity onPress={onClose} style={styles.backButton}>
+            <HugeiconsIcon icon={ArrowLeft01Icon} size={24} color={theme.text} />
+          </TouchableOpacity>
+        )}
         <View style={styles.headerTitleContainer}>
           <HugeiconsIcon icon={Settings02Icon} size={24} color={theme.primary} />
           <Text style={[styles.headerTitle, { color: theme.text }]}>Preferencias</Text>
         </View>
-        <View style={{ width: 24 }} />
+        {onClose && <View style={{ width: 24 }} />}
       </View>
 
       <ScrollView style={styles.scrollView}>
