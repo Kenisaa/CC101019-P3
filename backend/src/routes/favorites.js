@@ -7,7 +7,15 @@ router.post('/add', async (req, res) => {
   try {
     const { userId, recipeData } = req.body;
 
+    console.log('📥 POST /favorites/add recibido:', {
+      userId,
+      recipeName: recipeData?.name,
+      hasRecipeData: !!recipeData,
+      timestamp: new Date().toISOString()
+    });
+
     if (!userId || !recipeData || !recipeData.name) {
+      console.error('❌ Datos incompletos:', { userId, hasRecipeData: !!recipeData, hasName: !!recipeData?.name });
       return res.status(400).json({
         success: false,
         error: 'Datos incompletos. Se requiere userId y recipeData con nombre'
@@ -15,6 +23,7 @@ router.post('/add', async (req, res) => {
     }
 
     const result = await db.addFavoriteRecipe(userId, recipeData);
+    console.log('✅ Resultado de DB:', result);
 
     if (result.success) {
       res.status(201).json({
@@ -23,13 +32,14 @@ router.post('/add', async (req, res) => {
         favoriteId: result.id
       });
     } else {
+      console.error('❌ Error al agregar:', result.error);
       res.status(400).json({
         success: false,
         error: result.error || 'Error al agregar a favoritos'
       });
     }
   } catch (error) {
-    console.error('Error en /favorites/add:', error);
+    console.error('❌ Error en /favorites/add:', error);
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'
@@ -43,7 +53,10 @@ router.get('/:userId', async (req, res) => {
     const { userId } = req.params;
     const limit = parseInt(req.query.limit) || 50;
 
+    console.log('📥 GET /favorites/:userId recibido:', { userId, limit });
+
     const result = await db.getFavoriteRecipes(userId, limit);
+    console.log('✅ Favoritos obtenidos:', { count: result.favorites?.length || 0 });
 
     if (result.success) {
       res.status(200).json({
@@ -51,13 +64,14 @@ router.get('/:userId', async (req, res) => {
         favorites: result.favorites
       });
     } else {
+      console.error('❌ Error al obtener favoritos');
       res.status(500).json({
         success: false,
         error: 'Error al obtener favoritos'
       });
     }
   } catch (error) {
-    console.error('Error en /favorites/:userId:', error);
+    console.error('❌ Error en /favorites/:userId:', error);
     res.status(500).json({
       success: false,
       error: 'Error interno del servidor'

@@ -345,31 +345,61 @@ export default function DashboardScreen() {
   };
 
   const handleToggleFavorite = async (recipe: Recipe, recommendationId?: string) => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      console.log("❌ No user ID disponible");
+      return;
+    }
 
     try {
       const recipeName = recipe.name;
       const isFavorite = favoriteRecipes.has(recipeName);
 
+      console.log("📱 Toggle favorito:", {
+        recipeName,
+        isFavorite,
+        userId: user.id,
+        recommendationId,
+        platform: require('react-native').Platform.OS
+      });
+
       if (isFavorite) {
         // Eliminar de favoritos
+        console.log("🗑️ Intentando eliminar de favoritos...");
         const checkResult = await isFavoriteRecipe(user.id, recipeName);
+        console.log("✅ Check result:", checkResult);
+
         if (checkResult.isFavorite && checkResult.favoriteId) {
-          await removeFavoriteRecipe(checkResult.favoriteId, user.id);
+          const removeResult = await removeFavoriteRecipe(checkResult.favoriteId, user.id);
+          console.log("✅ Remove result:", removeResult);
+
           setFavoriteRecipes((prev) => {
             const newSet = new Set(prev);
             newSet.delete(recipeName);
+            console.log("📝 Estado actualizado, favoritos restantes:", newSet.size);
             return newSet;
           });
           Alert.alert("Eliminado", "Receta eliminada de favoritos");
         }
       } else {
         // Agregar a favoritos
-        await addFavoriteRecipe(user.id, recipe, recommendationId);
-        setFavoriteRecipes((prev) => new Set(prev).add(recipeName));
-        Alert.alert("¡Guardado!", "Receta agregada a favoritos");
+        console.log("➕ Intentando agregar a favoritos...");
+        const addResult = await addFavoriteRecipe(user.id, recipe, recommendationId);
+        console.log("✅ Add result:", addResult);
+
+        if (addResult.success) {
+          setFavoriteRecipes((prev) => {
+            const newSet = new Set(prev).add(recipeName);
+            console.log("📝 Estado actualizado, total favoritos:", newSet.size);
+            return newSet;
+          });
+          Alert.alert("¡Guardado!", "Receta agregada a favoritos");
+        } else {
+          console.error("❌ Error al agregar:", addResult);
+          Alert.alert("Error", addResult.error || "No se pudo agregar a favoritos");
+        }
       }
     } catch (error: any) {
+      console.error("❌ Error en handleToggleFavorite:", error);
       Alert.alert("Error", error.message || "No se pudo actualizar favoritos");
     }
   };

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Alert,
   Share,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { HugeiconsIcon } from "@hugeicons/react-native";
 import {
   FavouriteIcon,
@@ -36,24 +37,36 @@ export default function FavoritesScreen({
   const [favorites, setFavorites] = useState<FavoriteRecipe[]>([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadFavorites();
-  }, []);
-
-  const loadFavorites = async () => {
+  const loadFavorites = useCallback(async () => {
     try {
+      console.log("🔄 Cargando favoritos para userId:", userId);
       setLoading(true);
       const result = await getFavoriteRecipes(userId);
+      console.log("✅ Favoritos recibidos:", result);
       if (result.success) {
         setFavorites(result.favorites || []);
+        console.log("📝 Total favoritos cargados:", result.favorites?.length || 0);
       }
     } catch (error) {
-      console.error("Error loading favorites:", error);
+      console.error("❌ Error loading favorites:", error);
       Alert.alert("Error", "No se pudieron cargar los favoritos");
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  // Cargar cuando el componente se monta
+  useEffect(() => {
+    loadFavorites();
+  }, [loadFavorites]);
+
+  // Recargar cuando la pantalla obtiene el foco (al cambiar de tab)
+  useFocusEffect(
+    useCallback(() => {
+      console.log("👁️ FavoritesScreen obtuvo el foco, recargando...");
+      loadFavorites();
+    }, [loadFavorites])
+  );
 
   const handleRemoveFavorite = async (favoriteId: string) => {
     Alert.alert(
