@@ -2,6 +2,14 @@
 
 Meal Buddy es una aplicación móvil de recomendaciones de comidas con IA que te ayuda a descubrir qué comer cada día.
 
+## 📱 Vista Previa
+
+<div align="center">
+  <img src="./screenshots/screenshot-1.png" width="250" alt="Screenshot 1"/>
+  <img src="./screenshots/screenshot-2.png" width="250" alt="Screenshot 2"/>
+  <img src="./screenshots/screenshot-3.png" width="250" alt="Screenshot 3"/>
+</div>
+
 ## 🚀 Características
 
 - **Autenticación con Email/Teléfono**: Login seguro con OTP
