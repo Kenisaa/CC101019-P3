@@ -13,7 +13,7 @@ Meal Buddy es una aplicación móvil de recomendaciones de comidas con IA que te
 ## 🚀 Características
 
 - **Autenticación con Email/Teléfono**: Login seguro con OTP
-- **Recomendaciones con IA**: Sugerencias personalizadas usando Google Gemini AI
+- **Recomendaciones con IA**: Sugerencias personalizadas usando Google Gemini PRO AI
 - **Historial de Comidas**: Registra y consulta tus comidas con fotos
 - **Navegación tipo WhatsApp**: Tabs inferiores para acceso rápido
 - **Sistema de Favoritos**: Guarda tus recetas favoritas
